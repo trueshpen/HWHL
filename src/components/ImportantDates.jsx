@@ -5,6 +5,7 @@ import './ImportantDates.css'
 
 function ImportantDates({ data, onUpdate }) {
   const [isAdding, setIsAdding] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     date: '',
@@ -14,18 +15,46 @@ function ImportantDates({ data, onUpdate }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     const newDate = {
-      id: Date.now(),
+      id: editingId || Date.now(),
       name: formData.name,
       date: formData.date,
       gifts: formData.gifts.split(',').map(g => g.trim()).filter(g => g),
     }
     
+    let updatedDates
+    if (editingId) {
+      // Update existing date
+      updatedDates = data.importantDates.map(d => 
+        d.id === editingId ? newDate : d
+      )
+    } else {
+      // Add new date
+      updatedDates = [...data.importantDates, newDate]
+    }
+    
     const newData = updateData({
-      importantDates: [...data.importantDates, newDate]
+      importantDates: updatedDates
     })
     onUpdate(newData)
     setFormData({ name: '', date: '', gifts: '' })
     setIsAdding(false)
+    setEditingId(null)
+  }
+
+  const handleEdit = (dateObj) => {
+    setEditingId(dateObj.id)
+    setIsAdding(true)
+    setFormData({
+      name: dateObj.name,
+      date: dateObj.date,
+      gifts: dateObj.gifts ? dateObj.gifts.join(', ') : '',
+    })
+  }
+
+  const handleCancel = () => {
+    setFormData({ name: '', date: '', gifts: '' })
+    setIsAdding(false)
+    setEditingId(null)
   }
 
   const handleDelete = (id) => {
@@ -49,7 +78,15 @@ function ImportantDates({ data, onUpdate }) {
     <div className="important-dates card">
       <div className="card-header">
         <h3>📅 Important Dates</h3>
-        <button onClick={() => setIsAdding(!isAdding)}>
+        <button onClick={() => {
+          if (isAdding) {
+            handleCancel()
+          } else {
+            setIsAdding(true)
+            setEditingId(null)
+            setFormData({ name: '', date: '', gifts: '' })
+          }
+        }}>
           {isAdding ? 'Cancel' : '+ Add'}
         </button>
       </div>
@@ -84,7 +121,9 @@ function ImportantDates({ data, onUpdate }) {
               placeholder="e.g., Flowers, Chocolate, Book"
             />
           </div>
-          <button type="submit" className="btn-primary">Add Date</button>
+          <button type="submit" className="btn-primary">
+            {editingId ? 'Update Date' : 'Add Date'}
+          </button>
         </form>
       )}
 
@@ -100,17 +139,27 @@ function ImportantDates({ data, onUpdate }) {
                 <div key={dateObj.id} className="date-item">
                   <div className="date-header">
                     <h4>{dateObj.name}</h4>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(dateObj.id)}
-                    >
-                      ×
-                    </button>
+                    <div className="date-actions">
+                      <button
+                        className="edit-btn"
+                        onClick={() => handleEdit(dateObj)}
+                        title="Edit date"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDelete(dateObj.id)}
+                        title="Delete date"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                   <div className="date-info">
                     <div className="date-main">
                       <span className="date-label">Date:</span>
-                      <span className="date-value">{format(new Date(dateObj.date), 'd MMM yyyy')}</span>
+                      <span className="date-value">{format(new Date(dateObj.date), 'dd/MM/yyyy')}</span>
                     </div>
                     <div className="notifications">
                       <div className="notification-item">

@@ -47,18 +47,102 @@ function CalendarView() {
     // Add important dates events
     if (data.importantDates && data.importantDates.length > 0) {
       data.importantDates.forEach(dateObj => {
-        const eventDate = format(new Date(dateObj.date), 'yyyy-MM-dd')
-        if (eventDate === dateStr) {
+        // Check if this important date matches this day (considering yearly recurrence)
+        const eventDate = new Date(dateObj.date)
+        const currentYear = date.getFullYear()
+        const eventMonth = eventDate.getMonth()
+        const eventDay = eventDate.getDate()
+        
+        // Create date for this year
+        const thisYearDate = new Date(currentYear, eventMonth, eventDay)
+        const thisYearDateStr = format(thisYearDate, 'yyyy-MM-dd')
+        
+        if (thisYearDateStr === dateStr) {
+          // Use 🎉 for Birthday, 📅 for others
+          const isBirthday = dateObj.name.toLowerCase().includes('birthday')
           events.push({ 
             type: 'important', 
             label: dateObj.name, 
             color: '#c44569',
-            emoji: '📅'
+            emoji: isBirthday ? '🎉' : '📅'
           })
         }
       })
     }
 
+    return events
+  }
+
+  // Get list of events for a date (excluding period start/end and reminders which are shown as icons)
+  const getEventListForDate = (date) => {
+    const events = []
+    const dateStr = format(date, 'yyyy-MM-dd')
+    
+    // Add 8 days alert (period notification)
+    if (data.cycle.expectedNextStart) {
+      const nextStart = new Date(data.cycle.expectedNextStart)
+      const notificationDate = addDays(nextStart, -PERIOD_NOTIFICATION_DAYS_BEFORE)
+      if (isSameDay(date, notificationDate)) {
+        events.push({
+          type: 'notification',
+          label: `${PERIOD_NOTIFICATION_DAYS_BEFORE} Days Before`,
+          emoji: '🔔'
+        })
+      }
+    }
+    
+    // Add important dates reminders (1 month, 1 week, 1 day before, day of)
+    if (data.importantDates && data.importantDates.length > 0) {
+      const currentYear = date.getFullYear()
+      
+      data.importantDates.forEach(dateObj => {
+        const eventDate = new Date(dateObj.date)
+        const eventMonth = eventDate.getMonth()
+        const eventDay = eventDate.getDate()
+        const thisYearDate = new Date(currentYear, eventMonth, eventDay)
+        const isBirthday = dateObj.name.toLowerCase().includes('birthday')
+        
+        // Check 1 month before
+        const monthBefore = addDays(thisYearDate, -30)
+        if (isSameDay(date, monthBefore)) {
+          events.push({
+            type: 'important-reminder',
+            label: `${dateObj.name} - 1 month before`,
+            emoji: isBirthday ? '🎉' : '📅'
+          })
+        }
+        
+        // Check 1 week before
+        const weekBefore = addDays(thisYearDate, -7)
+        if (isSameDay(date, weekBefore)) {
+          events.push({
+            type: 'important-reminder',
+            label: `${dateObj.name} - 1 week before`,
+            emoji: isBirthday ? '🎉' : '📅'
+          })
+        }
+        
+        // Check 1 day before
+        const dayBefore = addDays(thisYearDate, -1)
+        if (isSameDay(date, dayBefore)) {
+          events.push({
+            type: 'important-reminder',
+            label: `${dateObj.name} - 1 day before`,
+            emoji: isBirthday ? '🎉' : '📅'
+          })
+        }
+        
+        // Check day of
+        if (isSameDay(date, thisYearDate)) {
+          events.push({
+            type: 'important',
+            label: dateObj.name,
+            emoji: isBirthday ? '🎉' : '📅'
+          })
+        }
+      })
+    }
+    
     return events
   }
 
@@ -115,7 +199,6 @@ function CalendarView() {
     
     // Check if this date is already a start date
     if (periods.some(p => p.startDate === dateStr)) {
-      setShowEventMenu(null)
       return
     }
     
@@ -134,7 +217,6 @@ function CalendarView() {
     
     if (overlappingPeriod) {
       // Don't allow adding a period that overlaps with an existing one
-      setShowEventMenu(null)
       return
     }
     
@@ -143,7 +225,7 @@ function CalendarView() {
     const newPeriod = { startDate: dateStr, endDate: endDate }
     updateCycleData([...periods, newPeriod])
     
-    setShowEventMenu(null)
+    // Don't close menu - keep it open
   }
 
   const handleAddPeriodEnd = (date) => {
@@ -187,7 +269,7 @@ function CalendarView() {
       updateCycleData([...periods, newPeriod])
     }
     
-    setShowEventMenu(null)
+    // Don't close menu - keep it open
   }
 
   const handleRemovePeriod = (date) => {
@@ -207,7 +289,7 @@ function CalendarView() {
       updateCycleData(newPeriods)
     }
     
-    setShowEventMenu(null)
+    // Don't close menu - keep it open
   }
 
   const getReminderEventsForDate = (date) => {
@@ -387,73 +469,148 @@ function CalendarView() {
                     ))}
                   </div>
                   {/* Notification dot in right bottom corner */}
-                  {data.cycle.expectedNextStart && (() => {
-                    const nextStart = new Date(data.cycle.expectedNextStart)
-                    const notificationDate = addDays(nextStart, -PERIOD_NOTIFICATION_DAYS_BEFORE)
-                    if (isSameDay(day, notificationDate)) {
+                  {(() => {
+                    let hasNotification = false
+                    let notificationTitle = ''
+                    
+                    // Check for 8 days alert
+                    if (data.cycle.expectedNextStart) {
+                      const nextStart = new Date(data.cycle.expectedNextStart)
+                      const notificationDate = addDays(nextStart, -PERIOD_NOTIFICATION_DAYS_BEFORE)
+                      if (isSameDay(day, notificationDate)) {
+                        hasNotification = true
+                        notificationTitle = `${PERIOD_NOTIFICATION_DAYS_BEFORE} Days Before`
+                      }
+                    }
+                    
+                    // Check for Important Dates reminders (1 month, 1 week, 1 day before, day of)
+                    if (!hasNotification && data.importantDates && data.importantDates.length > 0) {
+                      const dateStr = format(day, 'yyyy-MM-dd')
+                      const currentYear = day.getFullYear()
+                      
+                      for (const dateObj of data.importantDates) {
+                        const eventDate = new Date(dateObj.date)
+                        const eventMonth = eventDate.getMonth()
+                        const eventDay = eventDate.getDate()
+                        const thisYearDate = new Date(currentYear, eventMonth, eventDay)
+                        
+                        // Check 1 month before
+                        const monthBefore = addDays(thisYearDate, -30)
+                        if (isSameDay(day, monthBefore)) {
+                          hasNotification = true
+                          notificationTitle = `${dateObj.name} - 1 month before`
+                          break
+                        }
+                        
+                        // Check 1 week before
+                        const weekBefore = addDays(thisYearDate, -7)
+                        if (isSameDay(day, weekBefore)) {
+                          hasNotification = true
+                          notificationTitle = `${dateObj.name} - 1 week before`
+                          break
+                        }
+                        
+                        // Check 1 day before
+                        const dayBefore = addDays(thisYearDate, -1)
+                        if (isSameDay(day, dayBefore)) {
+                          hasNotification = true
+                          notificationTitle = `${dateObj.name} - 1 day before`
+                          break
+                        }
+                        
+                        // Check day of
+                        if (isSameDay(day, thisYearDate)) {
+                          hasNotification = true
+                          notificationTitle = dateObj.name
+                          break
+                        }
+                      }
+                    }
+                    
+                    if (hasNotification) {
                       return (
                         <div 
                           className="notification-dot"
-                          title={`${PERIOD_NOTIFICATION_DAYS_BEFORE} Days Before`}
+                          title={notificationTitle}
                         ></div>
                       )
                     }
                     return null
                   })()}
-                  {showEventMenu && isSameDay(day, showEventMenu) && (
-                    <div className="event-menu" onClick={(e) => e.stopPropagation()}>
-                      <div className="menu-section">
-                        <div className="menu-section-title">Cycle</div>
-                        <div className="cycle-buttons">
-                          <button onClick={() => { handleAddPeriodStart(day); setShowEventMenu(null); }} className="cycle-btn" title="Mark as Start">
-                            Start
-                          </button>
-                          <button onClick={() => { handleAddPeriodEnd(day); setShowEventMenu(null); }} className="cycle-btn" title="Mark as End">
-                            End
-                          </button>
-                          <button onClick={() => { handleRemovePeriod(day); setShowEventMenu(null); }} className="cycle-btn remove" title="Remove Period">
-                            Remove
-                          </button>
+                  {showEventMenu && isSameDay(day, showEventMenu) && (() => {
+                    const eventList = getEventListForDate(day)
+                    return (
+                      <div className="event-menu" onClick={(e) => e.stopPropagation()}>
+                        {/* Event list section */}
+                        {eventList.length > 0 && (
+                          <>
+                            <div className="menu-section">
+                              <div className="menu-section-title">Events</div>
+                              <div className="event-list">
+                                {eventList.map((event, idx) => (
+                                  <div key={idx} className="event-list-item">
+                                    <span className="event-emoji">{event.emoji}</span>
+                                    <span className="event-label">{event.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="menu-divider"></div>
+                          </>
+                        )}
+                        <div className="menu-section">
+                          <div className="menu-section-title">Cycle</div>
+                          <div className="cycle-buttons">
+                            <button onClick={() => handleAddPeriodStart(day)} className="cycle-btn" title="Mark as Start">
+                              Start
+                            </button>
+                            <button onClick={() => handleAddPeriodEnd(day)} className="cycle-btn" title="Mark as End">
+                              End
+                            </button>
+                            <button onClick={() => handleRemovePeriod(day)} className="cycle-btn remove" title="Remove Period">
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="menu-divider"></div>
-                      <div className="menu-section">
-                        <div className="menu-section-title">Reminders</div>
-                        <div className="reminders-grid">
-                          {[
-                            { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'No flowers' },
-                            { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'No surprises' },
-                            { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'No date night' },
-                            { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'No love showed :(' },
-                          ].map(({ type, emoji, addLabel, removeLabel }) => {
-                            const dateEvents = getReminderEventsForDate(day)
-                            const hasEvent = dateEvents.some(e => e.type === type)
-                            
-                            return (
-                              <button
-                                key={type}
-                                onClick={() => {
-                                  if (hasEvent) {
-                                    handleRemoveReminderEvent(day, type)
-                                  } else {
-                                    handleAddReminderEvent(day, type)
-                                  }
-                                  setShowEventMenu(null)
-                                }}
-                                className={`reminder-icon-btn ${hasEvent ? 'remove' : 'add'}`}
-                                title={hasEvent ? removeLabel : addLabel}
-                              >
-                                {emoji}
-                              </button>
-                            )
-                          })}
+                        <div className="menu-divider"></div>
+                        <div className="menu-section">
+                          <div className="menu-section-title">Reminders</div>
+                          <div className="reminders-grid">
+                            {[
+                              { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'No flowers' },
+                              { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'No surprises' },
+                              { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'No date night' },
+                              { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'No love showed :(' },
+                            ].map(({ type, emoji, addLabel, removeLabel }) => {
+                              const dateEvents = getReminderEventsForDate(day)
+                              const hasEvent = dateEvents.some(e => e.type === type)
+                              
+                              return (
+                                <button
+                                  key={type}
+                                  onClick={() => {
+                                    if (hasEvent) {
+                                      handleRemoveReminderEvent(day, type)
+                                    } else {
+                                      handleAddReminderEvent(day, type)
+                                    }
+                                    // Don't close menu - keep it open
+                                  }}
+                                  className={`reminder-icon-btn ${hasEvent ? 'remove' : 'add'}`}
+                                  title={hasEvent ? removeLabel : addLabel}
+                                >
+                                  {emoji}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
+                        <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">
+                          Cancel
+                        </button>
                       </div>
-                      <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                    )
+                  })()}
                 </div>
               )
             })}

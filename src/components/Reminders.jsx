@@ -214,7 +214,7 @@ function Reminders({ data, onUpdate }) {
     const reminder = data.reminders[type]
     const existingNotes = reminder?.notes || []
     const newNote = {
-      type: type === 'general' ? 'love' : newNoteType,
+      type: type === 'general' ? 'love' : (type === 'dateNights' ? 'note' : newNoteType),
       text: newNoteText.trim(),
       id: `note-${Date.now()}-${Math.random()}`
     }
@@ -532,6 +532,63 @@ function Reminders({ data, onUpdate }) {
                               <option value="like">✓ Likes</option>
                               <option value="dislike">× Dislikes</option>
                             </select>
+                            <input
+                              type="text"
+                              value={newNoteText}
+                              onChange={(e) => setNewNoteText(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && handleAddNote(type)}
+                              placeholder="Add note..."
+                              className="note-input"
+                            />
+                            <button
+                              onClick={() => handleAddNote(type)}
+                              className="add-note-btn"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {type === 'dateNights' && (
+                    <div className="reminder-notes">
+                      <div className="notes-header">
+                        <h4>Notes</h4>
+                        <button 
+                          onClick={() => setEditingNotes(editingNotes === type ? null : type)}
+                          className="edit-notes-btn"
+                        >
+                          {editingNotes === type ? 'Done' : 'Edit'}
+                        </button>
+                      </div>
+                      <div className="notes-list">
+                        {(reminder.notes || []).map(note => (
+                          <div key={note.id} className={`note-item ${note.type}`}>
+                            {editingNotes === type ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={note.text}
+                                  onChange={(e) => handleUpdateNoteText(type, note.id, e.target.value)}
+                                  className="note-input"
+                                />
+                                <button
+                                  onClick={() => handleRemoveNote(type, note.id)}
+                                  className="remove-note-btn"
+                                >
+                                  ×
+                                </button>
+                              </>
+                            ) : (
+                              <span className="note-text">{note.text}</span>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {editingNotes === type && (
+                          <div className="add-note-form">
                             <input
                               type="text"
                               value={newNoteText}

@@ -36,6 +36,12 @@
       "name": "Birthday",
       "date": "1992-12-03",
       "gifts": []
+    },
+    {
+      "id": 1762895019650,
+      "name": "Anniversary",
+      "date": "2015-08-05",
+      "gifts": []
     }
   ],
   "likes": [],
@@ -54,8 +60,9 @@
     "surprises": {
       "enabled": true,
       "frequency": 2,
-      "lastDone": null,
+      "lastDone": "2025-11-11T21:15:26.685Z",
       "events": [
+        "2025-11-11",
         "2025-11-10"
       ],
       "notes": []
@@ -70,8 +77,9 @@
     "general": {
       "enabled": true,
       "frequency": 1,
-      "lastDone": "2025-11-11T12:21:15.067Z",
+      "lastDone": "2025-11-11T20:54:56.745Z",
       "events": [
+        "2025-11-11",
         "2025-11-11",
         "2025-11-10"
       ],
