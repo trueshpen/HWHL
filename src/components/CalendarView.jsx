@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays } from 'date-fns'
-import { loadData, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
+import { loadData, loadDataSync, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
 import CycleTracker from './CycleTracker'
@@ -10,35 +10,17 @@ import './CalendarView.css'
 
 function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [data, setData] = useState(loadData())
+  const [data, setData] = useState(loadDataSync())
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
 
-  // Load data from JSON file on mount if available and replace current data
+  // Load data from server on mount (syncs with PC file)
   useEffect(() => {
-    const loadFileData = async () => {
-      try {
-        const response = await fetch('/wife-happiness-data.json')
-        if (response.ok) {
-          const fileData = await response.json()
-          // Always use file data if it exists and has periods
-          if (fileData.cycle && fileData.cycle.periods && fileData.cycle.periods.length > 0) {
-            // Recalculate cycle length and expected next start
-            const avgCycleLength = calculateAverageCycleLength(fileData.cycle.periods)
-            const nextExpected = calculateNextExpectedStart(fileData.cycle.periods, avgCycleLength)
-            fileData.cycle.cycleLength = avgCycleLength
-            fileData.cycle.expectedNextStart = nextExpected
-            // Save to localStorage and update state
-            saveData(fileData)
-            setData(fileData)
-          }
-        }
-      } catch (error) {
-        // File not found or error - use localStorage data
-        console.log('Using localStorage data:', error)
-      }
+    const syncData = async () => {
+      const serverData = await loadData()
+      setData(serverData)
     }
-    loadFileData()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    syncData()
+  }, [])
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)

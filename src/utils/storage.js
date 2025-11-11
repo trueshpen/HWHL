@@ -1,7 +1,7 @@
 import { DEFAULT_CYCLE_LENGTH, MAX_CYCLE_LENGTH_DAYS } from './constants'
 
 const STORAGE_KEY = 'wife-happiness-app-data'
-const DATA_FILE_NAME = 'wife-happiness-data.json'
+const API_BASE_URL = 'http://localhost:3000/api'
 
 const defaultData = {
   cycle: {
@@ -80,84 +80,6 @@ export const calculateNextExpectedStart = (periods, cycleLength) => {
   return nextStart.toISOString().split('T')[0]
 }
 
-// File System Access API for background file saving (no downloads)
-let fileHandle = null
-let saveTimeout = null
-
-// Check if File System Access API is available
-const isFileSystemAccessAvailable = () => {
-  return 'showSaveFilePicker' in window && 'showOpenFilePicker' in window
-}
-
-// Request file handle from user (one-time permission)
-export const requestFileAccess = async () => {
-  if (!isFileSystemAccessAvailable()) {
-    return false
-  }
-  
-  try {
-    fileHandle = await window.showSaveFilePicker({
-      suggestedName: DATA_FILE_NAME,
-      types: [{
-        description: 'JSON files',
-        accept: { 'application/json': ['.json'] }
-      }]
-    })
-    
-    // Save the file handle permission in localStorage
-    // Note: We can't store the file handle itself, but we can remember that permission was granted
-    localStorage.setItem('file-access-granted', 'true')
-    
-    // Save current data to the file
-    const data = loadData()
-    await saveToFile(data)
-    
-    return true
-  } catch (error) {
-    if (error.name !== 'AbortError') {
-      console.error('Error requesting file access:', error)
-    }
-    return false
-  }
-}
-
-// Save data to file using File System Access API (background, no download)
-const saveToFile = async (data) => {
-  if (!fileHandle) {
-    return false
-  }
-  
-  try {
-    const json = JSON.stringify(data, null, 2)
-    const writable = await fileHandle.createWritable()
-    await writable.write(json)
-    await writable.close()
-    return true
-  } catch (error) {
-    console.error('Error saving to file:', error)
-    // If file handle is invalid, clear it
-    if (error.name === 'NotFoundError' || error.name === 'InvalidStateError') {
-      fileHandle = null
-      localStorage.removeItem('file-access-granted')
-    }
-    return false
-  }
-}
-
-// Auto-save to file in background (debounced)
-const autoSaveToFile = (data) => {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout)
-  }
-  
-  // Wait 1 second after last change before auto-saving
-  saveTimeout = setTimeout(async () => {
-    if (fileHandle && isFileSystemAccessAvailable()) {
-      await saveToFile(data)
-    }
-  }, 1000)
-}
-
 // Migrate old reminder format to include events array and notes
 const migrateReminderData = (oldReminders) => {
   if (!oldReminders) return defaultData.reminders
@@ -215,57 +137,124 @@ const migrateCycleData = (oldCycle) => {
   }
 }
 
-// Load data from localStorage (temporary storage)
-export const loadData = () => {
+// Apply migrations to data
+const applyMigrations = (data) => {
+  const merged = { ...defaultData, ...data }
+  
+  // Migrate cycle data if needed
+  if (data.cycle) {
+    // Migration function now preserves existing periods array
+    merged.cycle = migrateCycleData(data.cycle)
+    
+    // Add suggestions if missing
+    if (!merged.cycle.suggestions) {
+      merged.cycle.suggestions = defaultData.cycle.suggestions
+    }
+    
+    // Migrate old '8-days-before' phase to 'pre-period' if it exists
+    if (merged.cycle.suggestions['8-days-before']) {
+      if (!merged.cycle.suggestions['pre-period']) {
+        merged.cycle.suggestions['pre-period'] = {
+          phase: 'Wind Down',
+          items: merged.cycle.suggestions['8-days-before'].items || []
+        }
+      } else {
+        // Merge items if pre-period already exists
+        merged.cycle.suggestions['pre-period'].items = [
+          ...merged.cycle.suggestions['pre-period'].items,
+          ...(merged.cycle.suggestions['8-days-before'].items || [])
+        ]
+      }
+      delete merged.cycle.suggestions['8-days-before']
+    }
+    
+    // Recalculate if we have periods
+    if (merged.cycle.periods && merged.cycle.periods.length > 0) {
+      merged.cycle.cycleLength = calculateAverageCycleLength(merged.cycle.periods)
+      merged.cycle.expectedNextStart = calculateNextExpectedStart(
+        merged.cycle.periods, 
+        merged.cycle.cycleLength
+      )
+    }
+  }
+  
+  // Migrate reminder data if needed
+  if (data.reminders) {
+    merged.reminders = migrateReminderData(data.reminders)
+  }
+  
+  return merged
+}
+
+// Sync data to server (save to PC)
+let saveTimeout = null
+const syncToServer = async (data) => {
+  // Debounce: wait 500ms after last change before syncing
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+  }
+  
+  saveTimeout = setTimeout(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      
+      if (!response.ok) {
+        console.error('Failed to sync data to server')
+      }
+    } catch (error) {
+      // Silently fail if server is not available (offline mode)
+      // Data is still saved to localStorage
+      console.warn('Server sync failed (server may be offline):', error.message)
+    }
+  }, 500)
+}
+
+// Load data from server (primary source) or localStorage (fallback)
+export const loadData = async () => {
+  try {
+    // Try to fetch from server first
+    const response = await fetch(`${API_BASE_URL}/data`)
+    if (response.ok) {
+      const serverData = await response.json()
+      const migrated = applyMigrations(serverData)
+      
+      // Also save to localStorage for offline access
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+      
+      return migrated
+    }
+  } catch (error) {
+    // Server not available, fallback to localStorage
+    console.warn('Server not available, using localStorage:', error.message)
+  }
+  
+  // Fallback to localStorage
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const data = JSON.parse(stored)
-      const merged = { ...defaultData, ...data }
-      
-      // Migrate cycle data if needed
-      if (data.cycle) {
-        // Migration function now preserves existing periods array
-        merged.cycle = migrateCycleData(data.cycle)
-        
-        // Add suggestions if missing
-        if (!merged.cycle.suggestions) {
-          merged.cycle.suggestions = defaultData.cycle.suggestions
-        }
-        
-        // Migrate old '8-days-before' phase to 'pre-period' if it exists
-        if (merged.cycle.suggestions['8-days-before']) {
-          if (!merged.cycle.suggestions['pre-period']) {
-            merged.cycle.suggestions['pre-period'] = {
-              phase: 'Wind Down',
-              items: merged.cycle.suggestions['8-days-before'].items || []
-            }
-          } else {
-            // Merge items if pre-period already exists
-            merged.cycle.suggestions['pre-period'].items = [
-              ...merged.cycle.suggestions['pre-period'].items,
-              ...(merged.cycle.suggestions['8-days-before'].items || [])
-            ]
-          }
-          delete merged.cycle.suggestions['8-days-before']
-        }
-        
-        // Recalculate if we have periods
-        if (merged.cycle.periods && merged.cycle.periods.length > 0) {
-          merged.cycle.cycleLength = calculateAverageCycleLength(merged.cycle.periods)
-          merged.cycle.expectedNextStart = calculateNextExpectedStart(
-            merged.cycle.periods, 
-            merged.cycle.cycleLength
-          )
-        }
-      }
-      
-      // Migrate reminder data if needed
-      if (data.reminders) {
-        merged.reminders = migrateReminderData(data.reminders)
-      }
-      
-      return merged
+      return applyMigrations(data)
+    }
+  } catch (error) {
+    console.error('Error loading data from localStorage:', error)
+  }
+  
+  return defaultData
+}
+
+// Synchronous version for initial load (before async load completes)
+export const loadDataSync = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const data = JSON.parse(stored)
+      return applyMigrations(data)
     }
   } catch (error) {
     console.error('Error loading data:', error)
@@ -273,93 +262,22 @@ export const loadData = () => {
   return defaultData
 }
 
-// Save data to localStorage and optionally to file
+// Save data to localStorage and sync to server
 export const saveData = (data) => {
   try {
-    // Always save to localStorage (persistent storage)
+    // Always save to localStorage immediately (for fast UI updates)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     
-    // If file access is available and permission was granted, save to file in background
-    if (isFileSystemAccessAvailable() && fileHandle) {
-      autoSaveToFile(data)
-    }
+    // Sync to server in background (saves to PC)
+    syncToServer(data)
   } catch (error) {
     console.error('Error saving data:', error)
   }
 }
 
-// Initialize file access if previously granted
-// Note: File handles can't be persisted, but we remember that permission was granted
-export const initializeFileAccess = async () => {
-  if (isFileSystemAccessAvailable() && localStorage.getItem('file-access-granted') === 'true') {
-    // Permission was granted before, but file handle is lost on page reload
-    // User will need to click "Enable File Save" again to re-establish the file handle
-    // The browser will remember the file location from previous session
-    return true
-  }
-  return false
-}
-
-
 export const updateData = (updates) => {
-  const currentData = loadData()
+  const currentData = loadDataSync()
   const newData = { ...currentData, ...updates }
   saveData(newData)
   return newData
 }
-
-// Optional: Export/Import functions for backup (save to PC file)
-export const exportData = () => {
-  try {
-    const data = loadData()
-    const json = JSON.stringify(data, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'wife-happiness-data.json'
-    
-    // Ensure element is in DOM before clicking (Chrome requirement)
-    document.body.appendChild(a)
-    a.click()
-    
-    // Clean up
-    setTimeout(() => {
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    }, 100)
-  } catch (error) {
-    console.error('Error exporting data:', error)
-    alert('Error exporting data. Please try again.')
-  }
-}
-
-export const importData = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result)
-        saveData(data)
-        resolve(data)
-      } catch (error) {
-        reject(new Error('Invalid file format'))
-      }
-    }
-    reader.onerror = () => reject(new Error('Error reading file'))
-    reader.readAsText(file)
-  })
-}
-
-
-// Clear all data (reset to default)
-export const clearAllData = () => {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-    return defaultData
-  } catch (error) {
-    console.error('Error clearing data:', error)
-    return defaultData
-  }
-}
-

@@ -1,9 +1,18 @@
-import { useState } from 'react'
-import { loadData, updateData } from '../utils/storage'
+import { useState, useEffect } from 'react'
+import { loadData, loadDataSync, updateData } from '../utils/storage'
 import './NotesView.css'
 
 function NotesView() {
-  const [data, setData] = useState(loadData())
+  const [data, setData] = useState(loadDataSync())
+
+  // Load data from server on mount (syncs with PC file)
+  useEffect(() => {
+    const syncData = async () => {
+      const serverData = await loadData()
+      setData(serverData)
+    }
+    syncData()
+  }, [])
   const [editingLikes, setEditingLikes] = useState(false)
   const [editingDislikes, setEditingDislikes] = useState(false)
   const [newLike, setNewLike] = useState('')
