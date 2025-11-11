@@ -116,3 +116,307 @@
   padding: 1rem 0;
 }
 
+.cycle-hint {
+  background: var(--bg);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 3px solid var(--primary);
+}
+
+.cycle-hint p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.cycle-count {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  font-weight: normal;
+  margin-left: 0.25rem;
+}
+
+.cycle-suggestions {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--border);
+}
+
+.suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.suggestions-header h4 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.edit-suggestions-btn {
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-suggestions-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.phase-suggestions {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 2px solid var(--border);
+}
+
+.phase-suggestions.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+}
+
+.phase-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.suggestion-item.do {
+  border-left-color: var(--success);
+}
+
+.suggestion-item.dont {
+  border-left-color: #ff4757;
+}
+
+.suggestion-icon {
+  font-weight: bold;
+  font-size: 1.2rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.suggestion-item.do .suggestion-icon {
+  color: var(--success);
+}
+
+.suggestion-item.dont .suggestion-icon {
+  color: #ff4757;
+}
+
+.suggestion-text {
+  flex: 1;
+  color: var(--text);
+}
+
+.suggestion-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.suggestion-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.add-suggestion-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.suggestion-type-select {
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.add-item-btn {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.add-item-btn:hover {
+  background: var(--primary-dark);
+}
+
+.remove-item-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.remove-item-btn:hover {
+  background: #ee3542;
+}
+
+.no-suggestions {
+  color: var(--text-light);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
+.current-phase-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--border);
+}
+
+.current-phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.current-phase-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phase-emoji {
+  font-size: 1.5rem;
+}
+
+.phase-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.edit-phase-btn {
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-phase-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.current-phase-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.current-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.suggestion-phase-select {
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  color: var(--text);
+  min-width: 150px;
+}
+
+.add-suggestion-global {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 2px dashed var(--border);
+}
+
+.add-suggestion-global label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.add-suggestion-global .add-suggestion-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.add-suggestion-global .add-suggestion-form > * {
+  flex: 1;
+  min-width: 120px;
+}
+
+.selected-phase-suggestions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.selected-phase-title {
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+

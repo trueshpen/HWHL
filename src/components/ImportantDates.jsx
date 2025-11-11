@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { format, addDays } from 'date-fns'
-import { loadData, updateData } from '../utils/storage'
+import { updateData } from '../utils/storage'
 import './ImportantDates.css'
 
 function ImportantDates({ data, onUpdate }) {
@@ -38,10 +38,10 @@ function ImportantDates({ data, onUpdate }) {
   const getNotifications = (dateStr) => {
     const date = new Date(dateStr)
     return {
-      monthBefore: format(addDays(date, -30), 'MMM d'),
-      weekBefore: format(addDays(date, -7), 'MMM d'),
-      dayBefore: format(addDays(date, -1), 'MMM d'),
-      dayOf: format(date, 'MMM d'),
+      monthBefore: format(addDays(date, -30), 'd MMM'),
+      weekBefore: format(addDays(date, -7), 'd MMM'),
+      dayBefore: format(addDays(date, -1), 'd MMM'),
+      dayOf: format(date, 'd MMM'),
     }
   }
 
@@ -110,7 +110,7 @@ function ImportantDates({ data, onUpdate }) {
                   <div className="date-info">
                     <div className="date-main">
                       <span className="date-label">Date:</span>
-                      <span className="date-value">{format(new Date(dateObj.date), 'MMM d, yyyy')}</span>
+                      <span className="date-value">{format(new Date(dateObj.date), 'd MMM yyyy')}</span>
                     </div>
                     <div className="notifications">
                       <div className="notification-item">

@@ -90,6 +90,9 @@
 
 .reminder-status {
   margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .status-badge {
@@ -100,24 +103,28 @@
   font-weight: 500;
 }
 
-.status-badge.pending {
-  background: var(--warning);
+.reminder-counter {
+  font-size: 1.2rem;
+  font-weight: 700;
+  min-width: 2rem;
+  text-align: right;
   color: var(--text);
 }
 
+.status-badge.pending {
+  color: white;
+}
+
 .status-badge.due {
-  background: var(--primary);
   color: white;
   animation: pulse 2s infinite;
 }
 
 .status-badge.ok {
-  background: var(--success);
   color: white;
 }
 
 .status-badge.disabled {
-  background: #ccc;
   color: var(--text-light);
 }
 
@@ -143,8 +150,22 @@
   color: var(--text-light);
 }
 
+.last-done-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
 .last-done {
   font-weight: 500;
+}
+
+.last-done-action {
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-weight: 500;
+  font-style: italic;
 }
 
 .reminder-actions {
@@ -153,7 +174,8 @@
 }
 
 .btn-edit,
-.btn-done {
+.btn-done,
+.btn-clear {
   flex: 1;
   padding: 0.5rem;
   border-radius: 8px;
@@ -178,6 +200,16 @@
 
 .btn-done:hover {
   background: #00a085;
+  transform: translateY(-2px);
+}
+
+.btn-clear {
+  background: var(--warning);
+  color: var(--text);
+}
+
+.btn-clear:hover {
+  background: #f0b94a;
   transform: translateY(-2px);
 }
 
@@ -225,5 +257,147 @@
 
 .general-reminder-text p:last-child {
   margin-bottom: 0;
+}
+
+.reminder-notes {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--border);
+}
+
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.notes-header h4 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.edit-notes-btn {
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-notes-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.note-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.note-item.like {
+  border-left-color: var(--success);
+}
+
+.note-item.dislike {
+  border-left-color: #ff4757;
+}
+
+.note-icon {
+  font-weight: bold;
+  font-size: 1.2rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.note-item.like .note-icon {
+  color: var(--success);
+}
+
+.note-item.dislike .note-icon {
+  color: #ff4757;
+}
+
+.note-text {
+  flex: 1;
+  color: var(--text);
+}
+
+.note-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.note-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.add-note-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.note-type-select {
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.add-note-btn {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.add-note-btn:hover {
+  background: var(--primary-dark);
+}
+
+.remove-note-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.remove-note-btn:hover {
+  background: #ee3542;
 }
 

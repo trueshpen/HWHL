@@ -40,6 +40,31 @@
   transform: scale(1.1);
 }
 
+.calendar-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.go-to-today-btn {
+  padding: 0.75rem 2rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.go-to-today-btn:hover {
+  background: var(--accent);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
 .calendar-grid {
   display: flex;
   flex-direction: column;
@@ -64,6 +89,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0.5rem;
+  position: relative;
 }
 
 .calendar-day {
@@ -77,6 +103,8 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: visible; /* Allow menu to show outside */
+  z-index: 1;
 }
 
 .calendar-day:hover {
@@ -96,6 +124,7 @@
   border-color: var(--secondary);
   border-width: 3px;
   box-shadow: 0 0 0 3px var(--shadow);
+  z-index: 2;
 }
 
 .calendar-day.empty {
@@ -107,6 +136,257 @@
 .calendar-day.empty:hover {
   background: transparent;
   transform: none;
+}
+
+.calendar-day.period-past {
+  background: rgba(255, 107, 157, 0.2) !important; /* Light red fill for past periods (Moon Days) */
+}
+
+.calendar-day.period-future {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 107, 157, 0.2),
+    rgba(255, 107, 157, 0.2) 10px,
+    transparent 10px,
+    transparent 20px
+  ) !important; /* Striped red for future expected periods (same color as past Moon Days) */
+}
+
+.cycle-day-info {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cycle-phase-icon {
+  font-size: 0.9rem;
+}
+
+.cycle-day-number {
+  font-size: 0.7rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.notification-dot {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.25rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: rgba(255, 71, 87, 0.6);
+  z-index: 10;
+}
+
+.period-menu,
+.event-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.5rem;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 120px;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.menu-section-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+
+.event-menu-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cycle-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cycle-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  transition: all 0.2s;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.cycle-btn:hover {
+  transform: scale(1.02);
+  border-color: var(--primary);
+  background: var(--accent);
+}
+
+.cycle-btn.remove {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: white;
+}
+
+.cycle-btn.remove:hover {
+  background: #ee3542;
+  border-color: #ee3542;
+}
+
+.reminders-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.reminder-icon-btn {
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  transition: all 0.2s;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.reminder-icon-btn:hover {
+  transform: scale(1.1);
+  border-color: var(--primary);
+}
+
+.reminder-icon-btn.add {
+  background: var(--bg);
+  border-color: var(--success);
+}
+
+.reminder-icon-btn.add:hover {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.reminder-icon-btn.remove {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: white;
+}
+
+.reminder-icon-btn.remove:hover {
+  background: #ee3542;
+  border-color: #ee3542;
+}
+
+.event-icon-btn {
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  transition: all 0.2s;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.event-icon-btn:hover {
+  transform: scale(1.1);
+  border-color: var(--primary);
+}
+
+.event-icon-btn.add {
+  background: var(--bg);
+  border-color: var(--success);
+}
+
+.event-icon-btn.add:hover {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.event-icon-btn.remove {
+  background: #ff4757;
+  border-color: #ff4757;
+  color: white;
+}
+
+.event-icon-btn.remove:hover {
+  background: #ee3542;
+  border-color: #ee3542;
+}
+
+.period-btn {
+  padding: 0.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.period-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.period-btn.remove {
+  background: #ff4757;
+  color: white;
+}
+
+.period-btn.remove:hover {
+  background: #ee3542;
+  transform: translateY(-1px);
+}
+
+.period-btn.cancel {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.period-btn.cancel:hover {
+  background: var(--accent);
 }
 
 .day-number {
@@ -127,6 +407,19 @@
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.event-dot.emoji {
+  width: auto;
+  height: auto;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .calendar-sidebar {

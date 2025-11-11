@@ -22,6 +22,67 @@
   display: flex;
   gap: 1rem;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.backup-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.backup-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.backup-btn:hover {
+  background: var(--accent);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.backup-btn.clear-btn {
+  background: #ff4757;
+  color: white;
+  border-color: #ff4757;
+}
+
+.backup-btn.clear-btn:hover {
+  background: #ee3542;
+  border-color: #ee3542;
+}
+
+.backup-btn.file-access-btn {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+.backup-btn.file-access-btn:hover {
+  background: #00a085;
+  border-color: #00a085;
+}
+
+.file-access-status {
+  padding: 0.5rem 1rem;
+  background: var(--bg);
+  color: var(--success);
+  border: 2px solid var(--success);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .view-switcher button {
@@ -56,6 +117,100 @@
   margin: 0 auto;
 }
 
+.file-access-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.prompt-content {
+  background: var(--bg-card);
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 40px var(--shadow);
+  border: 2px solid var(--border);
+}
+
+.prompt-content h3 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.prompt-content p {
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fcc;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.prompt-actions button {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  border-color: var(--primary);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 768px) {
   .app-header {
     padding: 1rem;
@@ -75,6 +230,22 @@
 
   .app-main {
     padding: 1rem;
+  }
+
+  .file-access-prompt {
+    padding: 1rem;
+  }
+
+  .prompt-content {
+    padding: 1.5rem;
+  }
+
+  .prompt-actions {
+    flex-direction: column;
+  }
+
+  .prompt-actions button {
+    width: 100%;
   }
 }
 

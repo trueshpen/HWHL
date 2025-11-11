@@ -71,13 +71,42 @@ npm run build
 
 The built files will be in the `dist` directory.
 
+### Running the App
+
+**IMPORTANT: You must start the server first!**
+
+**Method 1: Use the batch file (Easiest)**
+1. Double-click `START-SERVER.bat`
+2. Wait for the message "Local: http://localhost:5173"
+3. Open `http://localhost:5173` in your browser
+4. Keep the server window open while using the app
+
+**Method 2: Use command line**
+```bash
+npm run dev
+```
+Then open `http://localhost:5173` in your browser
+
+**Method 3: Production build**
+```bash
+npm run build
+npm run preview
+```
+Then open the URL shown in the terminal
+
+**Note:** If you see "ERR_CONNECTION_REFUSED", it means the server isn't running. Start it first using Method 1 or 2 above.
+
 ## Data Storage
 
-All data is stored locally in your browser using localStorage. This means:
-- Your data stays private and never leaves your device
-- No account or login required
-- Data persists between sessions
-- You can clear browser data to reset the app
+**Automatic Data Storage:**
+- All data you enter is automatically saved to your browser's localStorage
+- Data persists across browser sessions
+- For backup or transferring data, use the Export button to download your data as a JSON file
+
+**Manual Backup/Restore:**
+- Click **💾 Export** to manually download your data as a JSON file
+- Click **📂 Import** to restore data from a previously exported file
+- Useful for backing up or transferring data between devices
 
 ## Usage Tips
 
