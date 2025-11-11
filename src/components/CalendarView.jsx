@@ -1,34 +1,16 @@
 import { useState, useEffect } from 'react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, differenceInDays } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays } from 'date-fns'
 import { loadData, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
+import { PHASES, getPhaseFromCycleDay, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
+import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
 import CycleTracker from './CycleTracker'
 import ImportantDates from './ImportantDates'
 import Reminders from './Reminders'
 import './CalendarView.css'
 
-// Phase definitions (same as CycleTracker)
-const PHASES = {
-  'period': { name: 'Moon Days', days: [1, 2, 3, 4, 5], emoji: '🌛' },
-  'post-period': { name: 'Fresh Start', days: [6, 7, 8, 9, 10, 11, 12, 13], emoji: '🌱' },
-  'ovulation': { name: 'Shining Peak', days: [14, 15, 16], emoji: '✨' },
-  'pre-period': { name: 'Wind Down', days: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], emoji: '🍃' },
-}
-
-// Get phase from cycle day (expects normalized day 1-28)
-const getPhaseFromCycleDay = (cycleDay) => {
-  if (!cycleDay) return null
-  for (const [phaseKey, phase] of Object.entries(PHASES)) {
-    if (phase.days.includes(cycleDay)) {
-      return phaseKey
-    }
-  }
-  return null
-}
-
 function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [data, setData] = useState(loadData())
-  const [showPeriodMenu, setShowPeriodMenu] = useState(null) // Date for which to show menu
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
 
   // Load data from JSON file on mount if available and replace current data
@@ -56,7 +38,7 @@ function CalendarView() {
       }
     }
     loadFileData()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -67,131 +49,10 @@ function CalendarView() {
   const firstDayOfWeek = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1
   const emptyDays = Array(firstDayOfWeek).fill(null)
 
-  // Check if date is in a past period
-  const isInPastPeriod = (date) => {
-    if (!data.cycle.periods || data.cycle.periods.length === 0) return false
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const checkDate = new Date(date)
-    checkDate.setHours(0, 0, 0, 0)
-    
-    return data.cycle.periods.some(period => {
-      const start = new Date(period.startDate)
-      const end = period.endDate ? new Date(period.endDate) : addDays(start, 4) // Default 4 days (5 total including start and end)
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-      
-      // Check if date is within the period range AND the period is in the past
-      const isInRange = checkDate >= start && checkDate <= end
-      const isPast = end < today
-      return isInRange && isPast
-    })
-  }
-
-  // Check if date is in a future expected period (all future cycles)
-  const isInFuturePeriod = (date) => {
-    if (!data.cycle.expectedNextStart || !data.cycle.cycleLength) return false
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const checkDate = new Date(date)
-    checkDate.setHours(0, 0, 0, 0)
-    
-    // Calculate all future period starts (up to 12 months ahead)
-    const futurePeriods = []
-    let currentStart = new Date(data.cycle.expectedNextStart)
-    const maxDate = addDays(today, 365) // Look up to 1 year ahead
-    
-    while (currentStart <= maxDate) {
-      const periodEnd = addDays(currentStart, 4) // 4 days after start (5 total)
-      futurePeriods.push({
-        start: new Date(currentStart),
-        end: periodEnd
-      })
-      // Move to next cycle
-      currentStart = addDays(currentStart, data.cycle.cycleLength)
-    }
-    
-    // Check if date falls within any future period
-    return futurePeriods.some(period => {
-      period.start.setHours(0, 0, 0, 0)
-      period.end.setHours(23, 59, 59, 999)
-      return checkDate >= period.start && checkDate <= period.end && period.start > today
-    })
-  }
-
-  // Calculate cycle day number (day 1 = period start, count until next period start)
-  // Works for both past periods and future expected periods
-  const getCycleDay = (date) => {
-    const checkDate = new Date(date)
-    checkDate.setHours(0, 0, 0, 0)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    // First check past periods
-    if (data.cycle.periods && data.cycle.periods.length > 0) {
-      const sortedPeriods = [...data.cycle.periods].sort((a, b) => 
-        new Date(b.startDate) - new Date(a.startDate)
-      )
-      
-      // Find the most recent period start that is on or before the check date
-      let periodStart = null
-      let nextPeriodStart = null
-      
-      for (let i = 0; i < sortedPeriods.length; i++) {
-        const periodStartDate = new Date(sortedPeriods[i].startDate)
-        periodStartDate.setHours(0, 0, 0, 0)
-        
-        if (checkDate >= periodStartDate) {
-          periodStart = periodStartDate
-          
-          // Find the next period start (if any)
-          if (i > 0) {
-            nextPeriodStart = new Date(sortedPeriods[i - 1].startDate)
-            nextPeriodStart.setHours(0, 0, 0, 0)
-          }
-          break
-        }
-      }
-      
-      if (periodStart) {
-        // Calculate days since period start
-        const daysSinceStart = differenceInDays(checkDate, periodStart) + 1 // +1 because start day is day 1
-        
-        // If we have a next period start, make sure we don't exceed it
-        if (nextPeriodStart && checkDate >= nextPeriodStart) {
-          // This date is in the next cycle, fall through to future periods check
-        } else {
-          return daysSinceStart
-        }
-      }
-    }
-    
-    // If date is in the future, calculate based on expected cycles
-    if (checkDate > today && data.cycle.expectedNextStart && data.cycle.cycleLength) {
-      let currentStart = new Date(data.cycle.expectedNextStart)
-      const maxDate = addDays(today, 365)
-      
-      while (currentStart <= maxDate) {
-        currentStart.setHours(0, 0, 0, 0)
-        const periodEnd = addDays(currentStart, 4)
-        periodEnd.setHours(23, 59, 59, 999)
-        const nextPeriodStart = addDays(currentStart, data.cycle.cycleLength)
-        nextPeriodStart.setHours(0, 0, 0, 0)
-        
-        // Check if date is within this cycle (from current period start to next period start)
-        if (checkDate >= currentStart && checkDate < nextPeriodStart) {
-          // Calculate cycle day (day 1 = period start)
-          const daysSinceStart = differenceInDays(checkDate, currentStart) + 1
-          return daysSinceStart
-        }
-        
-        // Move to next cycle
-        currentStart = nextPeriodStart
-      }
-    }
-    
-    return null
-  }
+  // Wrapper functions to use shared utilities with current data
+  const checkInPastPeriod = (date) => isInPastPeriod(date, data.cycle.periods)
+  const checkInFuturePeriod = (date) => isInFuturePeriod(date, data.cycle.expectedNextStart, data.cycle.cycleLength)
+  const getCycleDayForDate = (date) => getCycleDay(date, data.cycle)
 
   const getEventsForDate = (date) => {
     const events = []
@@ -223,31 +84,27 @@ function CalendarView() {
     e.preventDefault()
     e.stopPropagation()
     // Toggle menu
-    if ((showPeriodMenu && isSameDay(day, showPeriodMenu)) || (showEventMenu && isSameDay(day, showEventMenu))) {
-      setShowPeriodMenu(null)
+    if (showEventMenu && isSameDay(day, showEventMenu)) {
       setShowEventMenu(null)
     } else {
-      // Show event menu directly (simplified)
+      // Show event menu
       setShowEventMenu(day)
-      setShowPeriodMenu(null)
     }
   }
 
   // Close menu when clicking outside
   useEffect(() => {
+    if (!showEventMenu) return
+    
     const handleClickOutside = (e) => {
-      if (showPeriodMenu && !e.target.closest('.calendar-day') && !e.target.closest('.period-menu') && !e.target.closest('.event-menu')) {
-        setShowPeriodMenu(null)
-      }
-      if (showEventMenu && !e.target.closest('.calendar-day') && !e.target.closest('.event-menu') && !e.target.closest('.period-menu')) {
+      if (!e.target.closest('.calendar-day') && !e.target.closest('.event-menu')) {
         setShowEventMenu(null)
       }
     }
-    if (showPeriodMenu || showEventMenu) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showPeriodMenu, showEventMenu])
+    
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showEventMenu])
 
   // Helper function to update cycle data with recalculated values
   const updateCycleData = (newPeriods) => {
@@ -276,7 +133,7 @@ function CalendarView() {
     
     // Check if this date is already a start date
     if (periods.some(p => p.startDate === dateStr)) {
-      setShowPeriodMenu(null)
+      setShowEventMenu(null)
       return
     }
     
@@ -286,7 +143,7 @@ function CalendarView() {
       periodStart.setHours(0, 0, 0, 0)
       const periodEnd = period.endDate 
         ? new Date(period.endDate)
-        : addDays(periodStart, 4) // Default 4 days (5 total including start and end)
+        : addDays(periodStart, DEFAULT_PERIOD_DURATION_DAYS)
       periodEnd.setHours(23, 59, 59, 999)
       
       // Check if new date falls within the period range
@@ -295,16 +152,16 @@ function CalendarView() {
     
     if (overlappingPeriod) {
       // Don't allow adding a period that overlaps with an existing one
-      setShowPeriodMenu(null)
+      setShowEventMenu(null)
       return
     }
     
-    // Add new period with automatic end date (4 days after start = 5 days total including start and end)
-    const endDate = format(addDays(date, 4), 'yyyy-MM-dd')
+    // Add new period with automatic end date
+    const endDate = format(addDays(date, DEFAULT_PERIOD_DURATION_DAYS), 'yyyy-MM-dd')
     const newPeriod = { startDate: dateStr, endDate: endDate }
     updateCycleData([...periods, newPeriod])
     
-    setShowPeriodMenu(null)
+    setShowEventMenu(null)
   }
 
   const handleAddPeriodEnd = (date) => {
@@ -326,8 +183,8 @@ function CalendarView() {
         return true
       }
       
-      // Check if end date is auto-generated (exactly 4 days after start, meaning 5 days total)
-      const autoEndDate = format(addDays(startDate, 4), 'yyyy-MM-dd')
+      // Check if end date is auto-generated
+      const autoEndDate = format(addDays(startDate, DEFAULT_PERIOD_DURATION_DAYS), 'yyyy-MM-dd')
       if (p.endDate === autoEndDate) {
         // This is an auto-generated end date, allow updating it
         return true
@@ -348,7 +205,7 @@ function CalendarView() {
       updateCycleData([...periods, newPeriod])
     }
     
-    setShowPeriodMenu(null)
+    setShowEventMenu(null)
   }
 
   const handleRemovePeriod = (date) => {
@@ -368,7 +225,7 @@ function CalendarView() {
       updateCycleData(newPeriods)
     }
     
-    setShowPeriodMenu(null)
+    setShowEventMenu(null)
   }
 
   const getReminderEventsForDate = (date) => {
@@ -488,14 +345,14 @@ function CalendarView() {
             {daysInMonth.map(day => {
               const isToday = isSameDay(day, new Date())
               const events = getEventsForDate(day)
-              const inPastPeriod = isInPastPeriod(day)
-              const inFuturePeriod = isInFuturePeriod(day)
-              const cycleDay = getCycleDay(day)
+              const inPastPeriod = checkInPastPeriod(day)
+              const inFuturePeriod = checkInFuturePeriod(day)
+              const cycleDay = getCycleDayForDate(day)
               
               return (
                 <div
                   key={day.toISOString()}
-                  className={`calendar-day ${isToday ? 'today' : ''} ${(showPeriodMenu && isSameDay(day, showPeriodMenu)) || (showEventMenu && isSameDay(day, showEventMenu)) ? 'selected' : ''} ${inPastPeriod ? 'period-past' : ''} ${inFuturePeriod ? 'period-future' : ''}`}
+                  className={`calendar-day ${isToday ? 'today' : ''} ${showEventMenu && isSameDay(day, showEventMenu) ? 'selected' : ''} ${inPastPeriod ? 'period-past' : ''} ${inFuturePeriod ? 'period-future' : ''}`}
                   onClick={(e) => handleDayClick(day, e)}
                 >
                   <div className="day-number">{format(day, 'd')}</div>
@@ -527,15 +384,15 @@ function CalendarView() {
                       </div>
                     ))}
                   </div>
-                  {/* 8 days before notification dot in right bottom corner */}
+                  {/* Notification dot in right bottom corner */}
                   {data.cycle.expectedNextStart && (() => {
                     const nextStart = new Date(data.cycle.expectedNextStart)
-                    const notificationDate = addDays(nextStart, -8)
+                    const notificationDate = addDays(nextStart, -PERIOD_NOTIFICATION_DAYS_BEFORE)
                     if (isSameDay(day, notificationDate)) {
                       return (
                         <div 
                           className="notification-dot"
-                          title="8 Days Before"
+                          title={`${PERIOD_NOTIFICATION_DAYS_BEFORE} Days Before`}
                         ></div>
                       )
                     }

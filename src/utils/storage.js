@@ -1,3 +1,5 @@
+import { DEFAULT_CYCLE_LENGTH, MAX_CYCLE_LENGTH_DAYS } from './constants'
+
 const STORAGE_KEY = 'wife-happiness-app-data'
 const DATA_FILE_NAME = 'wife-happiness-data.json'
 
@@ -5,7 +7,7 @@ const defaultData = {
   cycle: {
     periods: [], // Array of { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
     expectedNextStart: null,
-    cycleLength: 28, // Will be calculated from periods
+    cycleLength: DEFAULT_CYCLE_LENGTH, // Will be calculated from periods
     suggestions: {
       // Phase-based suggestions: { phase: string, items: [{ type: 'do'|'dont', text: string, id: string }] }
       // Phases: 'period', 'post-period', 'ovulation', 'pre-period'
@@ -36,7 +38,7 @@ const defaultData = {
 
 // Calculate average cycle length from periods
 export const calculateAverageCycleLength = (periods) => {
-  if (!periods || periods.length < 2) return 28 // Default if not enough data
+  if (!periods || periods.length < 2) return DEFAULT_CYCLE_LENGTH // Default if not enough data
   
   // Sort periods by start date
   const sorted = [...periods].sort((a, b) => 
@@ -49,12 +51,12 @@ export const calculateAverageCycleLength = (periods) => {
     const days = Math.round(
       (new Date(sorted[i].startDate) - new Date(sorted[i-1].startDate)) / (1000 * 60 * 60 * 24)
     )
-    if (days > 0 && days < 50) { // Reasonable cycle length
+    if (days > 0 && days < MAX_CYCLE_LENGTH_DAYS) { // Reasonable cycle length
       cycleLengths.push(days)
     }
   }
   
-  if (cycleLengths.length === 0) return 28
+  if (cycleLengths.length === 0) return DEFAULT_CYCLE_LENGTH
   
   // Return average
   const sum = cycleLengths.reduce((a, b) => a + b, 0)
@@ -209,7 +211,7 @@ const migrateCycleData = (oldCycle) => {
     ...oldCycle,
     periods, // Use migrated periods
     expectedNextStart: oldCycle.expectedNextStart || null,
-    cycleLength: oldCycle.cycleLength || 28
+    cycleLength: oldCycle.cycleLength || DEFAULT_CYCLE_LENGTH
   }
 }
 
@@ -298,14 +300,6 @@ export const initializeFileAccess = async () => {
   return false
 }
 
-// Re-establish file handle (for when page reloads but permission was previously granted)
-// Note: This requires user interaction, so we'll just return false and let user click the button
-export const restoreFileAccess = async () => {
-  // File handles can't be persisted across page reloads
-  // User will need to click "Enable File Save" again to re-establish the file handle
-  // The browser will remember the file location from previous session
-  return false
-}
 
 export const updateData = (updates) => {
   const currentData = loadData()
@@ -357,22 +351,6 @@ export const importData = (file) => {
   })
 }
 
-// Load data from local JSON file (for development/backup)
-export const loadDataFromFile = async () => {
-  try {
-    // Try to load from the data directory
-    const response = await fetch('/data/wife-happiness-data.json')
-    if (response.ok) {
-      const data = await response.json()
-      // Save to localStorage
-      saveData(data)
-      return data
-    }
-  } catch (error) {
-    console.log('Could not load data from file, using localStorage:', error)
-  }
-  return null
-}
 
 // Clear all data (reset to default)
 export const clearAllData = () => {

@@ -1,15 +1,9 @@
 import { useState } from 'react'
-import { format, addDays, differenceInDays } from 'date-fns'
+import { format } from 'date-fns'
 import { updateData } from '../utils/storage'
+import { PHASES, MAX_CYCLE_LENGTH_DAYS } from '../utils/constants'
+import { getCycleDay } from '../utils/cycleUtils'
 import './CycleTracker.css'
-
-// Phase definitions with cute names
-const PHASES = {
-  'period': { name: 'Moon Days', days: [1, 2, 3, 4, 5], emoji: '🌛' },
-  'post-period': { name: 'Fresh Start', days: [6, 7, 8, 9, 10, 11, 12, 13], emoji: '🌱' },
-  'ovulation': { name: 'Shining Peak', days: [14, 15, 16], emoji: '✨' },
-  'pre-period': { name: 'Wind Down', days: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], emoji: '🍃' },
-}
 
 function CycleTracker({ data, onUpdate }) {
   const periods = data.cycle.periods || []
@@ -30,7 +24,7 @@ function CycleTracker({ data, onUpdate }) {
       const days = Math.round(
         (new Date(sorted[i].startDate) - new Date(sorted[i-1].startDate)) / (1000 * 60 * 60 * 24)
       )
-      if (days > 0 && days < 50) {
+      if (days > 0 && days < MAX_CYCLE_LENGTH_DAYS) {
         validCycles++
       }
     }
@@ -39,55 +33,9 @@ function CycleTracker({ data, onUpdate }) {
 
   const cyclesUsedForAvg = getCyclesUsedForAvg()
 
-  // Calculate current cycle day (same logic as CalendarView)
+  // Calculate current cycle day using shared utility
   const getCurrentCycleDay = () => {
-    if (!data.cycle.periods || data.cycle.periods.length === 0) return null
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    // Sort periods by start date (newest first)
-    const sortedPeriods = [...data.cycle.periods].sort((a, b) => 
-      new Date(b.startDate) - new Date(a.startDate)
-    )
-    
-    // Find the most recent period start that is on or before today
-    let periodStart = null
-    let nextPeriodStart = null
-    
-    for (let i = 0; i < sortedPeriods.length; i++) {
-      const periodStartDate = new Date(sortedPeriods[i].startDate)
-      periodStartDate.setHours(0, 0, 0, 0)
-      
-      if (today >= periodStartDate) {
-        periodStart = periodStartDate
-        
-        // Find the next period start (if any)
-        if (i > 0) {
-          nextPeriodStart = new Date(sortedPeriods[i - 1].startDate)
-          nextPeriodStart.setHours(0, 0, 0, 0)
-        } else if (data.cycle.expectedNextStart) {
-          const expectedNext = new Date(data.cycle.expectedNextStart)
-          expectedNext.setHours(0, 0, 0, 0)
-          if (today < expectedNext) {
-            nextPeriodStart = expectedNext
-          }
-        }
-        break
-      }
-    }
-    
-    if (!periodStart) return null
-    
-    // Calculate days since period start
-    const daysSinceStart = differenceInDays(today, periodStart) + 1 // +1 because start day is day 1
-    
-    // If we have a next period start, make sure we don't exceed it
-    if (nextPeriodStart && today >= nextPeriodStart) {
-      return null // This date is in the next cycle
-    }
-    
-    return daysSinceStart
+    return getCycleDay(new Date(), data.cycle)
   }
 
   // Get current phase based on cycle day
