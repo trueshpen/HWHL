@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, isSameDay } from 'date-fns'
 import { updateData } from '../utils/storage'
 import './Reminders.css'
 
@@ -10,11 +10,26 @@ const reminderTypes = {
   general: { emoji: '💕', label: 'Show love', defaultFrequency: 1 },
 }
 
+// Motivational phrases for "Show love" when done today
+const motivationalPhrases = [
+  'You can do it again!',
+  'Keep the love flowing! 💕',
+  'Another day, another chance to show love!',
+  'Love never stops! Keep going!',
+  'Every moment is a chance to make her happy!',
+  'The more love, the better! 💖',
+  'Keep spreading the love!',
+  'Love is a daily practice!',
+  'Make her smile again today! 😊',
+  'Your love makes a difference every day!'
+]
+
 function Reminders({ data, onUpdate }) {
   const [editing, setEditing] = useState(null)
   const [editingNotes, setEditingNotes] = useState(null)
   const [newNoteText, setNewNoteText] = useState('')
   const [newNoteType, setNewNoteType] = useState('like')
+  const [currentMotivationalPhrase, setCurrentMotivationalPhrase] = useState(motivationalPhrases[0])
 
   const handleToggle = (type) => {
     const newData = updateData({
@@ -36,6 +51,18 @@ function Reminders({ data, onUpdate }) {
     // Get existing events or initialize empty array
     const existingEvents = data.reminders[type].events || []
     
+    // For "Show love" (general), allow multiple entries per day
+    // For other types, don't add if already exists for today
+    if (type !== 'general' && existingEvents.includes(eventDate)) {
+      return
+    }
+    
+    // For "Show love", pick a random motivational phrase
+    if (type === 'general') {
+      const randomPhrase = motivationalPhrases[Math.floor(Math.random() * motivationalPhrases.length)]
+      setCurrentMotivationalPhrase(randomPhrase)
+    }
+    
     const newData = updateData({
       reminders: {
         ...data.reminders,
@@ -52,24 +79,27 @@ function Reminders({ data, onUpdate }) {
   const handleClearDone = (type) => {
     const reminder = data.reminders[type]
     const events = reminder.events || []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = format(today, 'yyyy-MM-dd')
     
-    // Remove the most recent event (first in array since sorted newest first)
-    const newEvents = events.length > 0 ? events.slice(1) : []
-    
-    // Get the previous event date if available
-    const previousEventDate = newEvents.length > 0 ? newEvents[0] : null
-    
-    const newData = updateData({
-      reminders: {
-        ...data.reminders,
-        [type]: {
-          ...data.reminders[type],
-          lastDone: previousEventDate ? new Date(previousEventDate + 'T00:00:00').toISOString() : null,
-          events: newEvents
+    // Remove today's entry if it exists
+    if (events.includes(todayStr)) {
+      const newEvents = events.filter(eventDate => eventDate !== todayStr)
+      const previousEventDate = newEvents.length > 0 ? newEvents[0] : null
+      
+      const newData = updateData({
+        reminders: {
+          ...data.reminders,
+          [type]: {
+            ...data.reminders[type],
+            lastDone: previousEventDate ? new Date(previousEventDate + 'T00:00:00').toISOString() : null,
+            events: newEvents
+          }
         }
-      }
-    })
-    onUpdate(newData)
+      })
+      onUpdate(newData)
+    }
   }
 
   const handleEdit = (type) => {
@@ -140,14 +170,32 @@ function Reminders({ data, onUpdate }) {
     
     const daysSince = getDaysSince(reminder)
     if (daysSince === null) return { status: 'pending', message: 'Never done' }
-    if (daysSince >= reminder.frequency) {
-      return { status: 'due', message: `Due (${daysSince} days ago)` }
-    }
-    // For 'general' type, don't show "X days until due" message
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const lastEventDate = typeof lastEvent === 'string' 
+      ? (lastEvent.includes('T') ? new Date(lastEvent) : new Date(lastEvent + 'T00:00:00'))
+      : new Date(lastEvent)
+    lastEventDate.setHours(0, 0, 0, 0)
+    const isDoneToday = isSameDay(lastEventDate, today)
+    
+    // Check if today is the due day
+    const isDueToday = daysSince >= reminder.frequency && daysSince < reminder.frequency + 1
+    
+    // For 'general' type, don't show due message
     if (type === 'general') {
-      return { status: 'ok', message: '' }
+      return { status: 'ok', message: '', isDoneToday, isDueToday: false, daysSince }
     }
-    return { status: 'ok', message: `${reminder.frequency - daysSince} days until due` }
+    
+    // Calculate days until next due (or days overdue)
+    const daysUntil = reminder.frequency - daysSince
+    
+    if (daysSince >= reminder.frequency) {
+      const daysOverdue = daysSince - reminder.frequency
+      return { status: 'due', message: `Due (${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago)`, isDoneToday, isDueToday, daysSince, daysUntil }
+    }
+    
+    return { status: 'ok', message: `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`, isDoneToday, isDueToday, daysSince, daysUntil }
   }
 
   const getPreviousEventDate = (reminder) => {
@@ -254,17 +302,27 @@ function Reminders({ data, onUpdate }) {
                   <div className="reminder-status">
                     {type !== 'general' && (
                       <>
-                        <span 
-                          className={`status-badge ${status.status}`}
-                          style={{ backgroundColor: getStatusBadgeColor(reminder) }}
-                        >
-                          {status.message}
-                        </span>
-                        {getLastEventDate(reminder) && (
-                          <span className="reminder-counter">
-                            {getDaysSince(reminder) || 0}d
+                        {status.message && (
+                          <span 
+                            className={`status-badge ${status.status}`}
+                            style={{ backgroundColor: getStatusBadgeColor(reminder) }}
+                          >
+                            {status.message}
                           </span>
                         )}
+                        {getLastEventDate(reminder) && (() => {
+                          const lastEventDate = getLastEventDate(reminder)
+                          const lastEvent = new Date(lastEventDate.includes('T') ? lastEventDate : lastEventDate + 'T00:00:00')
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+                          lastEvent.setHours(0, 0, 0, 0)
+                          const isToday = isSameDay(lastEvent, today)
+                          return (
+                            <span className="reminder-last-date">
+                              {isToday ? 'Today' : `Last: ${format(lastEvent, 'd MMM')}`}
+                            </span>
+                          )
+                        })()}
                       </>
                     )}
                   </div>
@@ -291,16 +349,21 @@ function Reminders({ data, onUpdate }) {
                             const lastEvent = new Date(lastEventDate.includes('T') ? lastEventDate : lastEventDate + 'T00:00:00')
                             const today = new Date()
                             today.setHours(0, 0, 0, 0)
-                            const isToday = format(lastEvent, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+                            lastEvent.setHours(0, 0, 0, 0)
+                            const isToday = isSameDay(lastEvent, today)
+                            const isDueToday = status.isDueToday
                             
                             return (
                               <div className="last-done-container">
-                                <div className="last-done">
-                                  {isToday ? 'Today' : `Last: ${format(lastEvent, 'd MMM')}`}
-                                </div>
-                                <div className="last-done-action">
-                                  {isToday ? 'You can do it again!' : 'Do something now!'}
-                                </div>
+                                {type === 'general' ? (
+                                  <div className="last-done-action">
+                                    {isToday ? currentMotivationalPhrase : ''}
+                                  </div>
+                                ) : (
+                                  <div className="last-done-action">
+                                    {isToday ? 'Good job!' : (isDueToday ? 'Do something now!' : '')}
+                                  </div>
+                                )}
                               </div>
                             )
                           })()}
@@ -327,7 +390,8 @@ function Reminders({ data, onUpdate }) {
                             today.setHours(0, 0, 0, 0)
                             const isDoneToday = lastEventDate && (() => {
                               const lastEvent = new Date(lastEventDate.includes('T') ? lastEventDate : lastEventDate + 'T00:00:00')
-                              return format(lastEvent, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+                              lastEvent.setHours(0, 0, 0, 0)
+                              return isSameDay(lastEvent, today)
                             })()
                             
                             return (
@@ -338,12 +402,18 @@ function Reminders({ data, onUpdate }) {
                                 {isDoneToday ? 'Do it again!' : 'Mark Done'}
                               </button>
                             )
-                          })() : (
-                            reminder.lastDone ? (
+                          })() : (() => {
+                            const lastEventDate = getLastEventDate(reminder)
+                            const today = new Date()
+                            today.setHours(0, 0, 0, 0)
+                            const todayStr = format(today, 'yyyy-MM-dd')
+                            const hasTodayEvent = reminder.events && reminder.events.includes(todayStr)
+                            
+                            return hasTodayEvent ? (
                               <button
                                 className="btn-clear"
                                 onClick={() => handleClearDone(type)}
-                                title="Clear the 'done' status"
+                                title="Remove today's entry"
                               >
                                 Clear
                               </button>
@@ -355,7 +425,7 @@ function Reminders({ data, onUpdate }) {
                                 Mark Done
                               </button>
                             )
-                          )}
+                          })()}
                         </div>
                       </>
                     )}

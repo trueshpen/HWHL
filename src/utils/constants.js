@@ -1,9 +1,9 @@
 // Cycle phase definitions
 export const PHASES = {
   'period': { name: 'Moon Days', days: [1, 2, 3, 4, 5], emoji: '🌛' },
-  'post-period': { name: 'Fresh Start', days: [6, 7, 8, 9, 10, 11, 12, 13], emoji: '🌱' },
-  'ovulation': { name: 'Shining Peak', days: [14, 15, 16], emoji: '✨' },
-  'pre-period': { name: 'Wind Down', days: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], emoji: '🍃' },
+  'post-period': { name: 'Fresh Start', days: [6, 7, 8, 9], emoji: '🌱' },
+  'ovulation': { name: 'Shining Peak', days: [10, 11, 12, 13, 14, 15], emoji: '✨' },
+  'pre-period': { name: 'Wind Down', days: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], emoji: '🍃' },
 }
 
 // Cycle constants
@@ -20,6 +20,33 @@ export const getPhaseFromCycleDay = (cycleDay) => {
       return phaseKey
     }
   }
+  return null
+}
+
+// Get phase from cycle day using actual cycle length
+// Phases are based on fixed day ranges that scale with cycle length
+export const getPhaseFromCycleDayWithLength = (cycleDay, cycleLength) => {
+  if (!cycleDay || !cycleLength) return null
+  
+  // Normalize cycle day to 1-cycleLength range
+  const normalizedDay = ((cycleDay - 1) % cycleLength) + 1
+  
+  // Calculate phase based on actual day ranges:
+  // Period: days 1-5 (always)
+  // Fresh Start: days 6-9 (always)
+  // Shining Peak: days 10-15 (always)
+  // Pre-period: days 16 to end of cycle
+  
+  if (normalizedDay >= 1 && normalizedDay <= 5) {
+    return 'period'
+  } else if (normalizedDay >= 6 && normalizedDay <= 9) {
+    return 'post-period'
+  } else if (normalizedDay >= 10 && normalizedDay <= 15) {
+    return 'ovulation'
+  } else if (normalizedDay >= 16) {
+    return 'pre-period'
+  }
+  
   return null
 }
 

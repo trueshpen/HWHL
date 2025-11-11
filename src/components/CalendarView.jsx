@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays } from 'date-fns'
 import { loadData, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
-import { PHASES, getPhaseFromCycleDay, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
+import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
 import CycleTracker from './CycleTracker'
 import ImportantDates from './ImportantDates'
@@ -285,6 +285,8 @@ function CalendarView() {
       }
     })
     setData(newData)
+    // Force save to ensure file is updated
+    saveData(newData)
   }
 
   const handleRemoveReminderEvent = (date, type) => {
@@ -295,16 +297,32 @@ function CalendarView() {
     // Remove the date from events
     const newEvents = existingEvents.filter(eventDate => eventDate !== dateStr)
     
+    // Update lastDone if we removed today's event
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = format(today, 'yyyy-MM-dd')
+    let newLastDone = reminder?.lastDone
+    if (dateStr === todayStr && newEvents.length > 0) {
+      // If we removed today, update lastDone to the previous event
+      const previousEventDate = newEvents[0]
+      newLastDone = previousEventDate ? new Date(previousEventDate + 'T00:00:00').toISOString() : null
+    } else if (dateStr === todayStr && newEvents.length === 0) {
+      newLastDone = null
+    }
+    
     const newData = updateData({
       reminders: {
         ...data.reminders,
         [type]: {
           ...data.reminders[type],
+          lastDone: newLastDone,
           events: newEvents
         }
       }
     })
     setData(newData)
+    // Force save to ensure file is updated
+    saveData(newData)
   }
 
   return (
@@ -357,12 +375,14 @@ function CalendarView() {
                 >
                   <div className="day-number">{format(day, 'd')}</div>
                   {cycleDay !== null && (() => {
-                    // Normalize cycle day to 1-28 range for phase calculation (phases are always 28 days)
-                    const normalizedDay = ((cycleDay - 1) % 28) + 1
-                    const phase = getPhaseFromCycleDay(normalizedDay)
-                    // Use actual cycle day for display, wrapping around based on cycle length
+                    // Use actual cycle length for all calculations
                     const cycleLength = data.cycle.cycleLength || 28
-                    const displayDay = ((cycleDay - 1) % cycleLength) + 1
+                    // Normalize cycle day to cycle length range
+                    const normalizedDay = ((cycleDay - 1) % cycleLength) + 1
+                    // Get phase using actual cycle length (proportionally maps to 28-day phases)
+                    const phase = getPhaseFromCycleDayWithLength(normalizedDay, cycleLength)
+                    // Use actual cycle day for display
+                    const displayDay = normalizedDay
                     return (
                       <div className="cycle-day-info">
                         {phase && (

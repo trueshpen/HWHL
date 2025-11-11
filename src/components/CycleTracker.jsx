@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { updateData } from '../utils/storage'
-import { PHASES, MAX_CYCLE_LENGTH_DAYS } from '../utils/constants'
+import { PHASES, MAX_CYCLE_LENGTH_DAYS, getPhaseFromCycleDayWithLength } from '../utils/constants'
 import { getCycleDay } from '../utils/cycleUtils'
 import './CycleTracker.css'
 
@@ -38,23 +38,13 @@ function CycleTracker({ data, onUpdate }) {
     return getCycleDay(new Date(), data.cycle)
   }
 
-  // Get current phase based on cycle day
+  // Get current phase based on cycle day using actual cycle length
   const getCurrentPhase = () => {
     const cycleDay = getCurrentCycleDay()
     if (!cycleDay) return null
     
-    for (const [phaseKey, phase] of Object.entries(PHASES)) {
-      if (phase.days.includes(cycleDay)) {
-        return phaseKey
-      }
-    }
-    
-    // If cycle day is beyond 28, treat it as pre-period
-    if (cycleDay > 28) {
-      return 'pre-period'
-    }
-    
-    return null
+    const cycleLength = data.cycle.cycleLength || 28
+    return getPhaseFromCycleDayWithLength(cycleDay, cycleLength)
   }
 
   const currentPhase = getCurrentCycleDay() ? getCurrentPhase() : null
