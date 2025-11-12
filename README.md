@@ -76,7 +76,7 @@ The built files will be in the `dist` directory.
 **IMPORTANT: You must start the server first!**
 
 **Method 1: Use the batch file (Easiest)**
-1. Double-click `START-SERVER.bat`
+1. Double-click `scripts/start-server.bat`
 2. Wait for the message "Local: http://localhost:5173"
 3. Open `http://localhost:5173` in your browser
 4. Keep the server window open while using the app
@@ -128,8 +128,35 @@ Then open the URL shown in the terminal
 - React 18
 - Vite
 - date-fns for date handling
+- Express.js (backend API)
 - LocalStorage for data persistence
 - Modern CSS with custom properties
+
+## Documentation
+
+For detailed documentation, see:
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Code structure, components, and architecture
+- **[API.md](API.md)** - Backend API documentation
+- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation
+- **[QUICK-START.md](QUICK-START.md)** - Quick start guide and troubleshooting
+
+## Development
+
+### Project Structure
+
+- `src/` - React frontend application
+- `server/` - Express.js backend API
+- `data/` - Data storage directory
+- `scripts/` - Utility scripts
+
+### Available Scripts
+
+- `npm run dev` - Start Vite development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run server` - Start backend API server
+- `npm run dev:all` - Start both frontend and backend concurrently
 
 ---
 

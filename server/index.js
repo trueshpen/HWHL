@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = 3000
-const DATA_FILE = path.join(__dirname, 'data', 'wife-happiness-data.json')
+// Data file is in the parent directory's data folder
+const DATA_FILE = path.join(__dirname, '..', 'data', 'wife-happiness-data.json')
 
 // Middleware
 app.use(cors())

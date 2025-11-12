@@ -3,7 +3,7 @@
 ## Step-by-Step Instructions
 
 ### 1. Start the Server
-- **Double-click `START-SERVER.bat`**
+- **Double-click `scripts/start-server.bat`**
 - Wait for the message: `Local: http://localhost:5173`
 - **Keep this window open!** (Don't close it)
 
@@ -15,7 +15,7 @@
 ### 3. If It Doesn't Work
 
 **Check 1: Is the server running?**
-- Look at the `START-SERVER.bat` window
+- Look at the `scripts/start-server.bat` window
 - You should see: `Local: http://localhost:5173`
 - If you see errors, share them
 
@@ -34,13 +34,13 @@
 
 **Check 5: Check if port is in use**
 - Close all terminal windows
-- Restart `START-SERVER.bat`
+- Restart `scripts/start-server.bat`
 - If it says port is in use, restart your computer
 
 ## Troubleshooting
 
 ### Error: "ERR_CONNECTION_REFUSED"
-- **Solution:** The server isn't running. Start `START-SERVER.bat` first.
+- **Solution:** The server isn't running. Start `scripts/start-server.bat` first.
 
 ### Error: "Port 5173 is already in use"
 - **Solution:** Another server is running. Close it or restart your computer.

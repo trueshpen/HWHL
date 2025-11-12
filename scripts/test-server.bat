@@ -5,7 +5,8 @@ echo   Testing Server Connection
 echo ========================================
 echo.
 
-cd /d "%~dp0"
+REM Get the directory where this batch file is located and go to project root
+cd /d "%~dp0\.."
 
 echo Checking if server is running on port 5173...
 netstat -ano | findstr :5173
@@ -24,7 +25,7 @@ if %errorlevel% == 0 (
     echo.
     echo ✗ Server is NOT running!
     echo.
-    echo Please run START-SERVER.bat first
+    echo Please run scripts\start-server.bat first
     echo.
 )
 

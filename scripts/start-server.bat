@@ -5,8 +5,8 @@ echo   Wife Happiness App - Dev Server
 echo ========================================
 echo.
 
-REM Get the directory where this batch file is located
-cd /d "%~dp0"
+REM Get the directory where this batch file is located and go to project root
+cd /d "%~dp0\.."
 
 echo Checking if servers are already running...
 set PORT_WARNING=0
