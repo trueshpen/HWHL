@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { loadData, loadDataSync, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
@@ -24,17 +24,34 @@ function CalendarView() {
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
-
-  // Get first day of week for the month (Monday = 0, Sunday = 6)
-  // Adjust getDay() where Sunday=0, Monday=1... to Monday=0, Tuesday=1... Sunday=6
-  const firstDayOfWeek = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1
-  const emptyDays = Array(firstDayOfWeek).fill(null)
+  
+  // Get the calendar view start (Monday of the week containing month start)
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+  // Get the calendar view end (Sunday of the week containing month end)
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+  
+  // Generate all days for the calendar view (including previous and next month days)
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+  
+  // Calculate number of weeks (rows) in the calendar
+  const numberOfWeeks = Math.ceil(calendarDays.length / 7)
 
   // Wrapper functions to use shared utilities with current data
   const checkInPastPeriod = (date) => isInPastPeriod(date, data.cycle.periods)
   const checkInFuturePeriod = (date) => isInFuturePeriod(date, data.cycle.expectedNextStart, data.cycle.cycleLength)
   const getCycleDayForDate = (date) => getCycleDay(date, data.cycle)
+  
+  // Check if date is a period start date
+  const isPeriodStart = (date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return data.cycle.periods?.some(p => p.startDate === dateStr) || false
+  }
+  
+  // Check if date is a period end date
+  const isPeriodEnd = (date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    return data.cycle.periods?.some(p => p.endDate === dateStr) || false
+  }
 
   const getEventsForDate = (date) => {
     const events = []
@@ -396,18 +413,16 @@ function CalendarView() {
           <button onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
             ←
           </button>
-          <div className="calendar-header-center">
-            <h2>{format(currentDate, 'MMMM yyyy')}</h2>
-            {!isSameDay(startOfMonth(currentDate), startOfMonth(new Date())) && (
-              <button 
-                className="go-to-today-btn"
-                onClick={() => setCurrentDate(new Date())}
-                title="Go to current month"
-              >
-                Today
-              </button>
-            )}
-          </div>
+          <h2>{format(currentDate, 'MMMM yyyy')}</h2>
+          {!isSameDay(startOfMonth(currentDate), startOfMonth(new Date())) && (
+            <button 
+              className="go-to-today-btn"
+              onClick={() => setCurrentDate(new Date())}
+              title="Go to current month"
+            >
+              Today
+            </button>
+          )}
           <button onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
             →
           </button>
@@ -420,21 +435,21 @@ function CalendarView() {
             ))}
           </div>
 
-          <div className="calendar-days">
-            {emptyDays.map((_, i) => (
-              <div key={`empty-${i}`} className="calendar-day empty"></div>
-            ))}
-            {daysInMonth.map(day => {
+          <div className={`calendar-days ${numberOfWeeks === 6 ? 'six-weeks' : ''}`}>
+            {calendarDays.map(day => {
               const isToday = isSameDay(day, new Date())
+              const isCurrentMonth = isSameMonth(day, currentDate)
               const events = getEventsForDate(day)
               const inPastPeriod = checkInPastPeriod(day)
               const inFuturePeriod = checkInFuturePeriod(day)
               const cycleDay = getCycleDayForDate(day)
+              const periodStart = isPeriodStart(day)
+              const periodEnd = isPeriodEnd(day)
               
               return (
                 <div
                   key={day.toISOString()}
-                  className={`calendar-day ${isToday ? 'today' : ''} ${showEventMenu && isSameDay(day, showEventMenu) ? 'selected' : ''} ${inPastPeriod ? 'period-past' : ''} ${inFuturePeriod ? 'period-future' : ''}`}
+                  className={`calendar-day ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${showEventMenu && isSameDay(day, showEventMenu) ? 'selected' : ''} ${inPastPeriod ? 'period-past' : ''} ${inFuturePeriod ? 'period-future' : ''} ${periodStart ? 'period-start' : ''} ${periodEnd ? 'period-end' : ''}`}
                   onClick={(e) => handleDayClick(day, e)}
                 >
                   <div className="day-number">{format(day, 'd')}</div>
