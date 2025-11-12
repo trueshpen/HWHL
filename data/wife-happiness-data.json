@@ -44,8 +44,18 @@
       "gifts": []
     }
   ],
-  "likes": [],
-  "dislikes": [],
+  "likes": [
+    {
+      "id": 1762964041220,
+      "text": "Cherry"
+    }
+  ],
+  "dislikes": [
+    {
+      "id": 1762964053909,
+      "text": "Orange & yellow"
+    }
+  ],
   "wishlist": [],
   "reminders": {
     "flowers": {
@@ -55,7 +65,33 @@
       "events": [
         "2025-11-10"
       ],
-      "notes": []
+      "notes": [
+        {
+          "type": "dislike",
+          "text": "Orange, yellow",
+          "id": "note-1762963723621-0.09003708629820939"
+        },
+        {
+          "type": "dislike",
+          "text": "Partially red",
+          "id": "note-1762963736460-0.9421828854737828"
+        },
+        {
+          "type": "like",
+          "text": "Furunkula (pryskyrnik)",
+          "id": "note-1762963820171-0.20537493502580795"
+        },
+        {
+          "type": "like",
+          "text": "Peony",
+          "id": "note-1762963861570-0.8181762792336583"
+        },
+        {
+          "type": "like",
+          "text": "Mono-bouquets",
+          "id": "note-1762963892176-0.11883032114685033"
+        }
+      ]
     },
     "surprises": {
       "enabled": true,
