@@ -307,6 +307,33 @@ The app automatically migrates old data formats:
 
 ## Notifications & Alerts
 
+### Browser Notifications
+
+The app supports browser notifications to alert you about important events and reminders.
+
+**Features:**
+- **Daily Check**: Automatically checks for notifications at 10 AM daily
+- **Notification Types**:
+  - Due reminders (flowers, surprises, date nights, general)
+  - Important dates (1 month, 1 week, 1 day before, and day of)
+  - Cycle alerts (8 days before expected period start)
+- **Permission**: Click "Allow notifications" button in header to enable
+- **Smart Behavior**:
+  - Shows notification only once per day
+  - Checks if any notifications exist before showing
+  - Uses browser's native notification system
+
+**How It Works:**
+1. Click "Allow notifications" button in the app header
+2. Grant permission when browser prompts
+3. App checks daily at 10 AM for any notifications
+4. If notifications exist, browser shows a notification
+5. Notification appears even if app is not open (browser must be running)
+
+**Test Notifications:**
+- Click "Allow notifications" button to test notification system
+- Useful for verifying notification permissions
+
 ### Calendar Notifications
 
 - **8-day alert**: Before expected period start

@@ -11,13 +11,19 @@ HWHL/
 ├── src/                    # Frontend React application
 │   ├── components/        # React components
 │   │   ├── CalendarView.jsx
+│   │   ├── CalendarView.css
 │   │   ├── CycleTracker.jsx
+│   │   ├── CycleTracker.css
 │   │   ├── ImportantDates.jsx
+│   │   ├── ImportantDates.css
 │   │   ├── NotesView.jsx
-│   │   └── Reminders.jsx
+│   │   ├── NotesView.css
+│   │   ├── Reminders.jsx
+│   │   └── Reminders.css
 │   ├── utils/             # Utility functions
 │   │   ├── constants.js
 │   │   ├── cycleUtils.js
+│   │   ├── notifications.js
 │   │   └── storage.js
 │   ├── App.jsx            # Main app component
 │   ├── App.css            # Main app styles
@@ -51,10 +57,13 @@ App
 
 #### App.jsx
 - **Purpose**: Main application component with view routing
-- **State**: Manages current view (calendar/notes)
+- **State**: Manages current view (calendar/notes) and application data
 - **Features**: 
   - View switching between Calendar and Notes
-  - Navigation header
+  - Navigation header with notification permission button
+  - Data synchronization with server
+  - Daily notification scheduling
+  - Test notification functionality
 
 #### CalendarView.jsx
 - **Purpose**: Main calendar interface with event management
@@ -147,6 +156,20 @@ App
   - `getCycleDay()` - Calculate cycle day number for a date
   - `isInPastPeriod()` - Check if date is in a past period
   - `isInFuturePeriod()` - Check if date is in expected future period
+
+#### notifications.js
+- **Purpose**: Browser notification system
+- **Key Functions**:
+  - `requestNotificationPermission()` - Request browser notification permission
+  - `showTestNotification()` - Show test notification
+  - `checkAndShowNotifications()` - Check for notifications and show if needed
+  - `scheduleDailyNotifications()` - Schedule daily notification check at 10 AM
+  - `checkForNotifications()` - Check if there are any due reminders, important dates, or cycle alerts
+- **Features**:
+  - Daily check at 10 AM
+  - Checks for due reminders, important dates, and cycle alerts
+  - Shows browser notification if any notifications exist
+  - Prevents duplicate notifications (once per day)
 
 #### constants.js
 - **Purpose**: Application constants and phase definitions
