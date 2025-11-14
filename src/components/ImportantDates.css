@@ -1,3 +1,53 @@
+.expandable-header-clickable {
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: -0.75rem -1.5rem 1rem -1.5rem;
+  transition: background 0.2s;
+  user-select: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.expandable-header-clickable:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.expand-icon-down {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  transition: transform 0.2s;
+  margin-left: auto;
+}
+
+.header-add-btn {
+  background: var(--accent);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  align-self: flex-end;
+  margin-top: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.header-add-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
 .date-form {
   display: flex;
   flex-direction: column;
@@ -6,6 +56,41 @@
   padding: 1rem;
   background: var(--bg);
   border-radius: 12px;
+}
+
+.date-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-form label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.date-form input,
+.date-form textarea {
+  padding: 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--bg-card);
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.date-form input:focus,
+.date-form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.date-form textarea {
+  resize: vertical;
+  min-height: 60px;
 }
 
 .dates-list {
@@ -151,10 +236,26 @@
   font-size: 0.9rem;
 }
 
+.gifts-text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .gifts-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.gifts-multiline {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: var(--text);
+  line-height: 1.5;
+  padding: 0.5rem;
+  background: var(--bg-card);
+  border-radius: 8px;
 }
 
 .gift-tag {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { loadData, loadDataSync, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
@@ -12,6 +12,7 @@ function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [data, setData] = useState(loadDataSync())
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
+  const menuRef = useRef(null)
 
   // Load data from server on mount (syncs with PC file)
   useEffect(() => {
@@ -175,7 +176,80 @@ function CalendarView() {
     }
   }
 
-  // Close menu when clicking outside
+  // Adjust menu position when it opens
+  useEffect(() => {
+    if (!showEventMenu || !menuRef.current) return
+    
+    const adjustMenuPosition = () => {
+      const menuElement = menuRef.current
+      if (!menuElement) return
+      
+      const dayElement = menuElement.parentElement
+      if (!dayElement) return
+      
+      const dayRect = dayElement.getBoundingClientRect()
+      const menuRect = menuElement.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const viewportWidth = window.innerWidth
+      
+      // Estimate menu height and width
+      const menuHeight = menuRect.height || 400
+      const menuWidth = menuRect.width || 300
+      const spaceBelow = viewportHeight - dayRect.bottom
+      const spaceAbove = dayRect.top
+      const spaceRight = viewportWidth - dayRect.right
+      const spaceLeft = dayRect.left
+      
+      // Check if menu fits below
+      const fitsBelow = spaceBelow >= menuHeight + 20
+      // Check if menu fits above
+      const fitsAbove = spaceAbove >= menuHeight + 20
+      
+      // Determine if day is on left or right side of calendar
+      // Find day index in calendarDays to determine column (0-6, where 0-2 = left, 4-6 = right)
+      const dayIndex = calendarDays.findIndex(d => isSameDay(d, showEventMenu))
+      const column = dayIndex % 7
+      const isLeftSide = column <= 2
+      const isRightSide = column >= 4
+      
+      // Check if menu fits to the side
+      const fitsRight = spaceRight >= menuWidth + 10
+      const fitsLeft = spaceLeft >= menuWidth + 10
+      
+      // Remove all position classes first
+      menuElement.classList.remove('open-upward', 'open-right', 'open-left')
+      
+      // If menu doesn't fit vertically, try horizontal positioning
+      if (!fitsBelow && !fitsAbove) {
+        if (isLeftSide && fitsRight) {
+          // Day is on left, open to the right
+          menuElement.classList.add('open-right')
+        } else if (isRightSide && fitsLeft) {
+          // Day is on right, open to the left
+          menuElement.classList.add('open-left')
+        } else if (fitsAbove) {
+          // Fallback to upward if it fits
+          const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
+          if (estimatedTopWhenUpward >= 20) {
+            menuElement.classList.add('open-upward')
+          }
+        }
+      } else if (!fitsBelow && fitsAbove) {
+        // Check if menu top would be above viewport when opened upward
+        const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
+        if (estimatedTopWhenUpward >= 20) {
+          menuElement.classList.add('open-upward')
+        }
+      } else if (fitsBelow) {
+        // Menu fits below, keep default position
+      }
+    }
+    
+    // Small delay to ensure menu is rendered
+    setTimeout(adjustMenuPosition, 10)
+  }, [showEventMenu, calendarDays])
+
+  // Close menu when clicking outside or pressing Escape
   useEffect(() => {
     if (!showEventMenu) return
     
@@ -185,8 +259,18 @@ function CalendarView() {
       }
     }
     
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowEventMenu(null)
+      }
+    }
+    
     document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [showEventMenu])
 
   // Helper function to update cycle data with recalculated values
@@ -555,7 +639,7 @@ function CalendarView() {
                   {showEventMenu && isSameDay(day, showEventMenu) && (() => {
                     const eventList = getEventListForDate(day)
                     return (
-                      <div className="event-menu" onClick={(e) => e.stopPropagation()}>
+                      <div ref={menuRef} className="event-menu" onClick={(e) => e.stopPropagation()}>
                         {/* Event list section */}
                         {eventList.length > 0 && (
                           <>

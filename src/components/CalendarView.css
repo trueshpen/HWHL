@@ -169,13 +169,41 @@
 }
 
 .calendar-day.other-month {
-  opacity: 0.4;
+  position: relative;
   background: var(--bg);
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.calendar-day.other-month .day-number,
+.calendar-day.other-month .day-events,
+.calendar-day.other-month .cycle-day-info,
+.calendar-day.other-month .notification-dot {
+  opacity: 0.4;
+}
+
+.calendar-day.other-month .period-menu,
+.calendar-day.other-month .event-menu {
+  opacity: 1 !important;
+  z-index: 10000;
+  color: var(--text) !important;
 }
 
 .calendar-day.other-month:hover {
-  opacity: 0.6;
   background: var(--accent);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.calendar-day.other-month:hover .day-number,
+.calendar-day.other-month:hover .day-events,
+.calendar-day.other-month:hover .cycle-day-info,
+.calendar-day.other-month:hover .notification-dot {
+  opacity: 0.6;
+}
+
+.calendar-day.other-month:hover .period-menu,
+.calendar-day.other-month:hover .event-menu {
+  opacity: 1 !important;
+  color: var(--text) !important;
 }
 
 .calendar-day.period-past {
@@ -247,6 +275,37 @@
   gap: 0.25rem;
   min-width: 280px;
   max-width: 400px;
+  opacity: 1 !important; /* Override parent opacity for other-month days */
+}
+
+/* Ensure menu is fully opaque even when inside other-month day */
+.calendar-day.other-month .period-menu,
+.calendar-day.other-month .event-menu {
+  opacity: 1 !important;
+  filter: opacity(1) !important; /* Use filter to create new stacking context */
+  isolation: isolate; /* Create new stacking context to break opacity inheritance */
+  transform: translateZ(0); /* Force hardware acceleration and new stacking context */
+  will-change: opacity; /* Hint browser to optimize */
+  contain: layout style paint; /* Create containment context */
+}
+
+.event-menu.open-upward {
+  top: auto;
+  bottom: calc(100% + 5px);
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+}
+
+.event-menu.open-right {
+  left: calc(100% + 5px);
+  right: auto;
+  top: 0;
+}
+
+.event-menu.open-left {
+  right: calc(100% + 5px);
+  left: auto;
+  top: 0;
 }
 
 .menu-section {

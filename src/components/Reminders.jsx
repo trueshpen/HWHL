@@ -30,6 +30,7 @@ function Reminders({ data, onUpdate }) {
   const [newNoteText, setNewNoteText] = useState('')
   const [newNoteType, setNewNoteType] = useState('like')
   const [currentMotivationalPhrase, setCurrentMotivationalPhrase] = useState(motivationalPhrases[0])
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggle = (type) => {
     const newData = updateData({
@@ -269,10 +270,17 @@ function Reminders({ data, onUpdate }) {
 
   return (
     <div className="reminders card">
-      <div className="card-header">
-        <h3>💭 Reminders</h3>
+      <div 
+        className="card-header expandable-header-clickable"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="header-content">
+          <h3>💭 Reminders</h3>
+          <span className="expand-icon-down">{isExpanded ? '▼' : '▶'}</span>
+        </div>
       </div>
 
+      {isExpanded && (
       <div className="reminders-list">
         {Object.entries(reminderTypes).map(([type, info]) => {
           const reminder = data.reminders[type]
@@ -438,11 +446,19 @@ function Reminders({ data, onUpdate }) {
                           <div key={note.id} className={`note-item ${note.type}`}>
                             {editingNotes === type ? (
                               <>
-                                <input
-                                  type="text"
+                                <textarea
                                   value={note.text}
                                   onChange={(e) => handleUpdateNoteText(type, note.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      setEditingNotes(null)
+                                    } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
+                                      e.preventDefault()
+                                      setEditingNotes(null)
+                                    }
+                                  }}
                                   className="note-input"
+                                  rows={3}
                                 />
                                 <button
                                   onClick={() => handleRemoveNote(type, note.id)}
@@ -462,13 +478,21 @@ function Reminders({ data, onUpdate }) {
                         
                         {editingNotes === type && (
                           <div className="add-note-form">
-                            <input
-                              type="text"
+                            <textarea
                               value={newNoteText}
                               onChange={(e) => setNewNoteText(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && handleAddNote(type)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleAddNote(type)
+                                } else if (e.key === 'Escape') {
+                                  setEditingNotes(null)
+                                  setNewNoteText('')
+                                }
+                              }}
                               placeholder="Add love note..."
                               className="note-input"
+                              rows={3}
                             />
                             <button
                               onClick={() => handleAddNote(type)}
@@ -498,11 +522,19 @@ function Reminders({ data, onUpdate }) {
                           <div key={note.id} className={`note-item ${note.type}`}>
                             {editingNotes === type ? (
                               <>
-                                <input
-                                  type="text"
+                                <textarea
                                   value={note.text}
                                   onChange={(e) => handleUpdateNoteText(type, note.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      setEditingNotes(null)
+                                    } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
+                                      e.preventDefault()
+                                      setEditingNotes(null)
+                                    }
+                                  }}
                                   className="note-input"
+                                  rows={3}
                                 />
                                 <button
                                   onClick={() => handleRemoveNote(type, note.id)}
@@ -568,11 +600,19 @@ function Reminders({ data, onUpdate }) {
                           <div key={note.id} className={`note-item ${note.type}`}>
                             {editingNotes === type ? (
                               <>
-                                <input
-                                  type="text"
+                                <textarea
                                   value={note.text}
                                   onChange={(e) => handleUpdateNoteText(type, note.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      setEditingNotes(null)
+                                    } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
+                                      e.preventDefault()
+                                      setEditingNotes(null)
+                                    }
+                                  }}
                                   className="note-input"
+                                  rows={3}
                                 />
                                 <button
                                   onClick={() => handleRemoveNote(type, note.id)}
@@ -614,6 +654,7 @@ function Reminders({ data, onUpdate }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }
