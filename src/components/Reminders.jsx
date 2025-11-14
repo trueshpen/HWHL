@@ -24,13 +24,20 @@ const motivationalPhrases = [
   'Your love makes a difference every day!'
 ]
 
-function Reminders({ data, onUpdate }) {
+function Reminders({ data, onUpdate, onExpandChange }) {
   const [editing, setEditing] = useState(null)
   const [editingNotes, setEditingNotes] = useState(null)
   const [newNoteText, setNewNoteText] = useState('')
   const [newNoteType, setNewNoteType] = useState('like')
   const [currentMotivationalPhrase, setCurrentMotivationalPhrase] = useState(motivationalPhrases[0])
   const [isExpanded, setIsExpanded] = useState(false)
+  
+  const handleExpandChange = (expanded) => {
+    setIsExpanded(expanded)
+    if (onExpandChange) {
+      onExpandChange(expanded)
+    }
+  }
 
   const handleToggle = (type) => {
     const newData = updateData({
@@ -269,19 +276,19 @@ function Reminders({ data, onUpdate }) {
   }
 
   return (
-    <div className="reminders card">
+    <div className={`reminders card ${isExpanded ? 'expanded' : ''}`}>
       <div 
         className="card-header expandable-header-clickable"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => handleExpandChange(!isExpanded)}
       >
         <div className="header-content">
           <h3>💭 Reminders</h3>
-          <span className="expand-icon-down">{isExpanded ? '▼' : '▶'}</span>
+          <span className="expand-icon-down">{isExpanded ? '▲' : '▼'}</span>
         </div>
       </div>
 
       {isExpanded && (
-      <div className="reminders-list">
+        <div className="reminders-list">
         {Object.entries(reminderTypes).map(([type, info]) => {
           const reminder = data.reminders[type]
           if (!reminder) return null

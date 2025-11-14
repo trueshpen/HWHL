@@ -3,10 +3,17 @@ import { format } from 'date-fns'
 import { updateData } from '../utils/storage'
 import './ImportantDates.css'
 
-function ImportantDates({ data, onUpdate }) {
+function ImportantDates({ data, onUpdate, onExpandChange }) {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  
+  const handleExpandChange = (expanded) => {
+    setIsExpanded(expanded)
+    if (onExpandChange) {
+      onExpandChange(expanded)
+    }
+  }
   const [formData, setFormData] = useState({
     name: '',
     date: '',
@@ -71,14 +78,14 @@ function ImportantDates({ data, onUpdate }) {
 
 
   return (
-    <div className="important-dates card">
+    <div className={`important-dates card ${isExpanded ? 'expanded' : ''}`}>
       <div 
         className="card-header expandable-header-clickable"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => handleExpandChange(!isExpanded)}
       >
         <div className="header-content">
           <h3>📅 Important Dates</h3>
-          <span className="expand-icon-down">{isExpanded ? '▼' : '▶'}</span>
+          <span className="expand-icon-down">{isExpanded ? '▲' : '▼'}</span>
         </div>
         {isExpanded && (
           <button 
@@ -101,6 +108,7 @@ function ImportantDates({ data, onUpdate }) {
 
       {isExpanded && (
         <>
+          <div>
       {isAdding && (
         <form onSubmit={(e) => {
           e.preventDefault()
@@ -226,7 +234,8 @@ function ImportantDates({ data, onUpdate }) {
               )
             })
         )}
-      </div>
+          </div>
+          </div>
         </>
       )}
     </div>

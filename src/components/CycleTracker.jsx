@@ -5,13 +5,20 @@ import { PHASES, MAX_CYCLE_LENGTH_DAYS, getPhaseFromCycleDayWithLength } from '.
 import { getCycleDay } from '../utils/cycleUtils'
 import './CycleTracker.css'
 
-function CycleTracker({ data, onUpdate }) {
+function CycleTracker({ data, onUpdate, onExpandChange }) {
   const periods = data.cycle.periods || []
   const [editingPhase, setEditingPhase] = useState(null)
   const [newItemText, setNewItemText] = useState('')
   const [newItemType, setNewItemType] = useState('do')
   const [selectedPhaseForAdd, setSelectedPhaseForAdd] = useState('pre-period')
   const [isExpanded, setIsExpanded] = useState(false)
+  
+  const handleExpandChange = (expanded) => {
+    setIsExpanded(expanded)
+    if (onExpandChange) {
+      onExpandChange(expanded)
+    }
+  }
   
   // Calculate how many cycles were actually used for average calculation
   const getCyclesUsedForAvg = () => {
@@ -127,24 +134,24 @@ function CycleTracker({ data, onUpdate }) {
   }
 
   return (
-    <div className="cycle-tracker card">
+    <div className={`cycle-tracker card ${isExpanded ? 'expanded' : ''}`}>
       <div 
         className="card-header expandable-header-clickable"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => handleExpandChange(!isExpanded)}
       >
         <div className="header-content">
-          <h3>🔄 Cycle</h3>
-          <span className="expand-icon-down">{isExpanded ? '▼' : '▶'}</span>
+        <h3>🔄 Cycle</h3>
+          <span className="expand-icon-down">{isExpanded ? '▲' : '▼'}</span>
         </div>
       </div>
       
       {isExpanded && (
         <>
           <div className="cycle-hint">
-            <p>💡 Click on calendar days to mark period Start or End</p>
-          </div>
+        <p>💡 Click on calendar days to mark period Start or End</p>
+      </div>
 
-          <div className="cycle-info">
+      <div className="cycle-info">
         {periods.length > 0 ? (
           <>
             {data.cycle.expectedNextStart && (
@@ -229,11 +236,11 @@ function CycleTracker({ data, onUpdate }) {
             No period data yet. Click on a calendar day to mark it as Start or End.
           </p>
         )}
-          </div>
+      </div>
 
-          {/* Add suggestion form (shown when editing) */}
-          {editingPhase && (
-            <div className="add-suggestion-global">
+      {/* Add suggestion form (shown when editing) */}
+      {editingPhase && (
+        <div className="add-suggestion-global">
           <div className="add-suggestion-form">
             <label>Add suggestion for:</label>
             <select
@@ -295,7 +302,7 @@ function CycleTracker({ data, onUpdate }) {
               </div>
             )
           })()}
-            </div>
+        </div>
           )}
         </>
       )}
