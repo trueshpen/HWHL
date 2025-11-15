@@ -1,11 +1,17 @@
 .expandable-header-clickable {
   cursor: pointer;
   background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 0.75rem 1rem;
-  margin: -0.75rem -1.5rem 1rem -1.5rem;
-  transition: background 0.2s;
+  margin: 0;
+  transition: all 0.2s;
   user-select: none;
+  position: relative;
+}
+
+.card.expanded .expandable-header-clickable {
+  border-radius: 16px 16px 0 0;
+  margin: 0 -1.5rem 0 -1.5rem;
 }
 
 .expandable-header-clickable:hover {
@@ -15,16 +21,31 @@
 .header-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex: 1;
   gap: 0.5rem;
+  flex: 1;
 }
 
 .expand-icon-down {
-  font-size: 0.9rem;
-  color: var(--text-light);
-  transition: transform 0.2s;
+  color: rgba(0, 0, 0, 0.12);
+  font-size: 1.4rem;
+  transition: color 0.2s;
   margin-left: auto;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  transform: scaleX(1.3) scaleY(0.9);
+  transform-origin: center;
+}
+
+.expandable-header-clickable:hover .expand-icon-down {
+  color: rgba(0, 0, 0, 0.2);
+}
+
+.card.expanded > *:not(.expandable-header-clickable) {
+  margin-top: 1rem;
 }
 
 .reminders-list {

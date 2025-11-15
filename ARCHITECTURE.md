@@ -72,54 +72,66 @@ App
   - Application data
   - Event menu visibility
 - **Features**:
-  - Monthly calendar grid
+  - Monthly calendar grid showing full weeks (includes days from previous/next month)
   - Cycle period visualization
   - Event management (periods, reminders, important dates)
   - Click handlers for day interactions
   - Event menu for adding/removing events
+  - Uses `useRef` for menu positioning
 - **Key Functions**:
   - `getEventsForDate()` - Get all events for a specific date
   - `handleAddPeriodStart/End()` - Manage cycle periods
   - `handleAddReminderEvent()` - Add reminder events
   - `updateCycleData()` - Recalculate cycle statistics
+  - `isPeriodStart/End()` - Check if date is period start/end
+  - `handleSectionExpand()` - Track expand/collapse state of sidebar sections
 
 #### CycleTracker.jsx
 - **Purpose**: Display and manage cycle information
-- **Props**: `data`, `onUpdate`
+- **Props**: `data`, `onUpdate`, `onExpandChange` (optional callback for expand/collapse state)
 - **Features**:
   - Current cycle day calculation
   - Phase-based suggestions (do/don't items)
   - Cycle statistics (average length, expected next start)
   - Phase-specific suggestion management
+  - Expand/collapse functionality with state tracking
 - **Key Functions**:
   - `getCurrentCycleDay()` - Calculate current day in cycle
   - `getCurrentPhase()` - Determine current cycle phase
   - `handleAddItem()` - Add phase-specific suggestions
+  - `handleExpandChange()` - Handle expand/collapse state changes
 
 #### ImportantDates.jsx
 - **Purpose**: Manage important dates (birthdays, anniversaries)
-- **Props**: `data`, `onUpdate`
+- **Props**: `data`, `onUpdate`, `onExpandChange` (optional callback for expand/collapse state)
 - **Features**:
   - Add/edit/delete important dates
-  - Preferred gifts list per date
+  - Notes field per date (textarea, supports multiline text)
+  - Backward compatibility: supports both array and string format for notes/gifts
   - Automatic notification calculations (1 month, 1 week, 1 day before)
+  - Keyboard shortcuts: Escape to cancel, Shift/Ctrl+Enter to submit
+  - Expand/collapse functionality with state tracking
 - **Key Functions**:
-  - `getNotifications()` - Calculate notification dates
   - `handleSubmit()` - Save date information
+  - `handleEdit()` - Load date data for editing (handles both formats)
+  - `handleCancel()` - Cancel editing with Escape key support
+  - `handleExpandChange()` - Handle expand/collapse state changes
 
 #### Reminders.jsx
 - **Purpose**: Manage reminder system (flowers, surprises, date nights, general)
-- **Props**: `data`, `onUpdate`
+- **Props**: `data`, `onUpdate`, `onExpandChange` (optional callback for expand/collapse state)
 - **Features**:
   - Enable/disable reminders
   - Customizable frequency
   - Status tracking (due, pending, ok)
   - Event history tracking
   - Notes for reminders (likes/dislikes, love notes)
+  - Expand/collapse functionality with state tracking
 - **Key Functions**:
   - `getStatus()` - Calculate reminder status
   - `handleMarkDone()` - Mark reminder as completed
   - `getDaysUntilNext()` - Calculate days until next due date
+  - `handleExpandChange()` - Handle expand/collapse state changes
 
 #### NotesView.jsx
 - **Purpose**: Manage likes, dislikes, and wishlist
@@ -225,7 +237,7 @@ App
     id: number,
     name: string,
     date: 'YYYY-MM-DD',
-    gifts: [string]
+    gifts: string  // Notes field (multiline text), backward compatible with array format
   }],
   likes: [{ id: number, text: string }],
   dislikes: [{ id: number, text: string }],

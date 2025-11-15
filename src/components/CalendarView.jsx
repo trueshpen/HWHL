@@ -13,6 +13,11 @@ function CalendarView() {
   const [data, setData] = useState(loadDataSync())
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
   const menuRef = useRef(null)
+  const [expandedSections, setExpandedSections] = useState({
+    cycle: false,
+    importantDates: false,
+    reminders: false
+  })
 
   // Load data from server on mount (syncs with PC file)
   useEffect(() => {
@@ -22,6 +27,15 @@ function CalendarView() {
     }
     syncData()
   }, [])
+
+  const handleSectionExpand = (section, expanded) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: expanded
+    }))
+  }
+
+  const hasExpandedSection = expandedSections.cycle || expandedSections.importantDates || expandedSections.reminders
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -717,10 +731,10 @@ function CalendarView() {
         </div>
       </div>
 
-      <div className="calendar-sidebar">
-        <CycleTracker data={data} onUpdate={setData} />
-        <ImportantDates data={data} onUpdate={setData} />
-        <Reminders data={data} onUpdate={setData} />
+      <div className={`calendar-sidebar ${hasExpandedSection ? 'has-expanded' : ''}`}>
+        <CycleTracker data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('cycle', expanded)} />
+        <ImportantDates data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('importantDates', expanded)} />
+        <Reminders data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('reminders', expanded)} />
       </div>
     </div>
   )

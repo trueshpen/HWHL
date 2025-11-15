@@ -12,6 +12,7 @@ The main calendar interface displays a monthly view with all events, reminders, 
 
 **Features:**
 - Monthly calendar grid with navigation
+- Shows full weeks (includes days from previous and next month for complete week view)
 - Visual indicators for:
   - Cycle periods (past and future)
   - Important dates
@@ -89,19 +90,26 @@ Manage birthdays, anniversaries, and special occasions with automatic reminders.
 
 **Features:**
 - Add/edit/delete important dates
-- Preferred gifts list per date
+- Notes field per date (multiline textarea for detailed notes)
 - Automatic yearly recurrence
 - Multiple notification reminders:
   - 1 month before
   - 1 week before
   - 1 day before
   - Day of event
+- Keyboard shortcuts:
+  - Escape key to cancel editing
+  - Shift/Ctrl+Enter to submit form
 
 **Date Information:**
 - Event name (e.g., "Birthday", "Anniversary")
 - Date (stored as date, displayed yearly)
-- Preferred gifts (comma-separated list)
+- Notes (multiline text field for gifts, preferences, or any notes)
 - Notification dates (calculated automatically)
+
+**Data Format:**
+- Notes are stored as string (supports multiline text)
+- Backward compatible with old array format (automatically converted)
 
 **Calendar Integration:**
 - Dates appear on calendar with emoji indicators
