@@ -20,8 +20,12 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
     gifts: '',
   })
 
+  const showAddForm = isAdding && !editingId
+
   const handleSubmit = (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) {
+      e.preventDefault()
+    }
     const newDate = {
       id: editingId || Date.now(),
       name: formData.name,
@@ -69,6 +73,17 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
     setEditingId(null)
   }
 
+  const handleFieldKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancel()
+    } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
+      e.preventDefault()
+      const fakeEvent = { preventDefault: () => {} }
+      handleSubmit(fakeEvent)
+    }
+  }
+
   const handleDelete = (id) => {
     const newData = updateData({
       importantDates: data.importantDates.filter(d => d.id !== id)
@@ -109,32 +124,14 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
       {isExpanded && (
         <>
           <div>
-      {isAdding && (
-        <form onSubmit={(e) => {
-          e.preventDefault()
-          handleSubmit(e)
-        }} className="date-form" onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            handleCancel()
-          }
-        }}>
+      {showAddForm && (
+        <form onSubmit={handleSubmit} className="date-form" onKeyDown={handleFieldKeyDown}>
           <div className="form-group">
             <label>Event Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  handleCancel()
-                } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
-                  e.preventDefault()
-                  const fakeEvent = { preventDefault: () => {} }
-                  handleSubmit(fakeEvent)
-                }
-              }}
               placeholder="e.g., Birthday, Anniversary"
               required
             />
@@ -145,16 +142,6 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  handleCancel()
-                } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
-                  e.preventDefault()
-                  const fakeEvent = { preventDefault: () => {} }
-                  handleSubmit(fakeEvent)
-                }
-              }}
               required
             />
           </div>
@@ -163,23 +150,18 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
             <textarea
               value={formData.gifts}
               onChange={(e) => setFormData({ ...formData, gifts: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  handleCancel()
-                } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
-                  e.preventDefault()
-                  const fakeEvent = { preventDefault: () => {} }
-                  handleSubmit(fakeEvent)
-                }
-              }}
               placeholder="e.g., Flowers, Chocolate, Book"
               rows={3}
             />
           </div>
-          <button type="submit" className="btn-primary">
-            {editingId ? 'Update Date' : 'Add Date'}
-          </button>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary">
+              Add Date
+            </button>
+          </div>
         </form>
       )}
 
@@ -192,44 +174,89 @@ function ImportantDates({ data, onUpdate, onExpandChange }) {
             .map(dateObj => {
               return (
                 <div key={dateObj.id} className="date-item">
-                  <div className="date-header">
-                    <h4>{dateObj.name}</h4>
-                    <div className="date-actions">
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEdit(dateObj)}
-                        title="Edit date"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(dateObj.id)}
-                        title="Delete date"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  <div className="date-info">
-                    <div className="date-main">
-                      <span className="date-label">Date:</span>
-                      <span className="date-value">{format(new Date(dateObj.date), 'dd/MM/yyyy')}</span>
-                    </div>
-                    {dateObj.gifts && (Array.isArray(dateObj.gifts) ? dateObj.gifts.length > 0 : dateObj.gifts.trim().length > 0) && (
-                      <div className="gifts">
-                        <span className="gifts-label">Notes:</span>
-                        <div className="gifts-text">
-                          {Array.isArray(dateObj.gifts) 
-                            ? dateObj.gifts.map((gift, i) => (
-                                <span key={i} className="gift-tag">{gift}</span>
-                              ))
-                            : <div className="gifts-multiline">{dateObj.gifts}</div>
-                          }
+                  {editingId === dateObj.id ? (
+                    <form
+                      onSubmit={handleSubmit}
+                      className="date-form inline"
+                      onKeyDown={handleFieldKeyDown}
+                    >
+                      <div className="form-group">
+                        <label>Event Name</label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Date</label>
+                        <input
+                          type="date"
+                          value={formData.date}
+                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Notes</label>
+                        <textarea
+                          value={formData.gifts}
+                          onChange={(e) => setFormData({ ...formData, gifts: e.target.value })}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button type="button" className="btn-secondary" onClick={handleCancel}>
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn-primary">
+                          Update Date
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="date-header">
+                        <h4>{dateObj.name}</h4>
+                        <div className="date-actions">
+                          <button
+                            className="edit-btn"
+                            onClick={() => handleEdit(dateObj)}
+                            title="Edit date"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDelete(dateObj.id)}
+                            title="Delete date"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="date-info">
+                        <div className="date-main">
+                          <span className="date-label">Date:</span>
+                          <span className="date-value">{format(new Date(dateObj.date), 'dd/MM/yyyy')}</span>
+                        </div>
+                        {dateObj.gifts && (Array.isArray(dateObj.gifts) ? dateObj.gifts.length > 0 : dateObj.gifts.trim().length > 0) && (
+                          <div className="gifts">
+                            <span className="gifts-label">Notes:</span>
+                            <div className="gifts-text">
+                              {Array.isArray(dateObj.gifts) 
+                                ? dateObj.gifts.map((gift, i) => (
+                                    <span key={i} className="gift-tag">{gift}</span>
+                                  ))
+                                : <div className="gifts-multiline">{dateObj.gifts}</div>
+                              }
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )
             })

@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { format, differenceInDays, isSameDay } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { updateData } from '../utils/storage'
+import {
+  reminderTypes,
+  getStatus,
+  getStatusBadgeColor,
+  getLastEventDate,
+  getDaysSince,
+  getPreviousEventDate
+} from '../utils/reminderUtils'
 import './Reminders.css'
-
-const reminderTypes = {
-  flowers: { emoji: '🌸', label: 'Flowers', defaultFrequency: 7 },
-  surprises: { emoji: '🎁', label: 'Small Surprises', defaultFrequency: 2 },
-  dateNights: { emoji: '💑', label: 'Date Nights', defaultFrequency: 7 },
-  general: { emoji: '💕', label: 'Show love', defaultFrequency: 1 },
-}
 
 // Motivational phrases for "Show love" when done today
 const motivationalPhrases = [
@@ -126,94 +127,6 @@ function Reminders({ data, onUpdate, onExpandChange }) {
     })
     onUpdate(newData)
     setEditing(null)
-  }
-
-  const getLastEventDate = (reminder) => {
-    if (!reminder) return null
-    // Get the most recent event date from events array
-    if (reminder.events && reminder.events.length > 0) {
-      // Events are sorted newest first
-      return reminder.events[0]
-    }
-    // Fall back to lastDone if no events
-    return reminder.lastDone
-  }
-
-  const getDaysSince = (reminder) => {
-    if (!reminder) return null
-    const lastEvent = getLastEventDate(reminder)
-    if (!lastEvent) return null
-    const lastEventDate = typeof lastEvent === 'string' 
-      ? (lastEvent.includes('T') ? new Date(lastEvent) : new Date(lastEvent + 'T00:00:00'))
-      : new Date(lastEvent)
-    return differenceInDays(new Date(), lastEventDate)
-  }
-
-  const getDaysUntilNext = (reminder, frequency) => {
-    const daysSince = getDaysSince(reminder)
-    if (daysSince === null) return null
-    return frequency - daysSince
-  }
-
-  const getStatusBadgeColor = (reminder) => {
-    if (!reminder) return '#ccc' // gray - no reminder
-    if (!reminder.enabled) return '#ccc' // gray - disabled
-    const lastEvent = getLastEventDate(reminder)
-    if (!lastEvent) return '#ccc' // gray - never done
-    
-    const daysUntil = getDaysUntilNext(reminder, reminder.frequency)
-    if (daysUntil === null) return '#ccc'
-    
-    if (daysUntil > 1) return 'var(--success)' // green - more than 1 day before
-    if (daysUntil >= -1) return 'var(--warning)' // yellow - 1 before, event day, 1 after
-    if (daysUntil >= -7) return '#ff4757' // red - 1+ days after
-    return '#c44569' // dark red - 7+ days after
-  }
-
-  const getStatus = (reminder, type) => {
-    if (!reminder) return { status: 'pending', message: 'Never done' }
-    if (!reminder.enabled) return { status: 'disabled', message: 'Disabled' }
-    const lastEvent = getLastEventDate(reminder)
-    if (!lastEvent) return { status: 'pending', message: 'Never done' }
-    
-    const daysSince = getDaysSince(reminder)
-    if (daysSince === null) return { status: 'pending', message: 'Never done' }
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const lastEventDate = typeof lastEvent === 'string' 
-      ? (lastEvent.includes('T') ? new Date(lastEvent) : new Date(lastEvent + 'T00:00:00'))
-      : new Date(lastEvent)
-    lastEventDate.setHours(0, 0, 0, 0)
-    const isDoneToday = isSameDay(lastEventDate, today)
-    
-    // Check if today is the due day
-    const isDueToday = daysSince >= reminder.frequency && daysSince < reminder.frequency + 1
-    
-    // For 'general' type, don't show due message
-    if (type === 'general') {
-      return { status: 'ok', message: '', isDoneToday, isDueToday: false, daysSince }
-    }
-    
-    // Calculate days until next due (or days overdue)
-    const daysUntil = reminder.frequency - daysSince
-    
-    if (daysSince >= reminder.frequency) {
-      const daysOverdue = daysSince - reminder.frequency
-      return { status: 'due', message: `Due (${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago)`, isDoneToday, isDueToday, daysSince, daysUntil }
-    }
-    
-    return { status: 'ok', message: `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`, isDoneToday, isDueToday, daysSince, daysUntil }
-  }
-
-  const getPreviousEventDate = (reminder) => {
-    if (!reminder) return null
-    if (!reminder.events || reminder.events.length === 0) return null
-    // Events are sorted newest first, so get the second one (index 1) if it exists
-    if (reminder.events.length > 1) {
-      return reminder.events[1]
-    }
-    return null
   }
 
   const handleAddNote = (type) => {

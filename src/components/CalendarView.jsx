@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
 import { loadData, loadDataSync, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
+import { reminderTypes } from '../utils/reminderUtils'
 import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
 import CycleTracker from './CycleTracker'
 import ImportantDates from './ImportantDates'
 import Reminders from './Reminders'
+import TodayReminders from './TodayReminders'
 import './CalendarView.css'
 
 function CalendarView() {
@@ -411,13 +413,6 @@ function CalendarView() {
     const events = []
     const dateStr = format(date, 'yyyy-MM-dd')
     
-    const reminderTypes = {
-      flowers: { emoji: '🌸', color: '#ff6b9d' },
-      surprises: { emoji: '🎁', color: '#fdcb6e' },
-      dateNights: { emoji: '💑', color: '#c44569' },
-      general: { emoji: '💕', color: '#f8b5c0' },
-    }
-
     Object.entries(reminderTypes).forEach(([type, info]) => {
       const reminder = data.reminders[type]
       if (reminder && reminder.events && Array.isArray(reminder.events)) {
@@ -732,6 +727,7 @@ function CalendarView() {
       </div>
 
       <div className={`calendar-sidebar ${hasExpandedSection ? 'has-expanded' : ''}`}>
+        <TodayReminders data={data} onUpdate={setData} />
         <CycleTracker data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('cycle', expanded)} />
         <ImportantDates data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('importantDates', expanded)} />
         <Reminders data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('reminders', expanded)} />

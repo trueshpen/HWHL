@@ -80,6 +80,12 @@
   border-radius: 12px;
 }
 
+.date-form.inline {
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+}
+
 .date-form .form-group {
   display: flex;
   flex-direction: column;
@@ -113,6 +119,30 @@
 .date-form textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+.date-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.date-form.inline .form-group input,
+.date-form.inline .form-group textarea {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+.date-form.inline .form-actions {
+  margin-top: 0.5rem;
+}
+
+.date-form .form-actions button {
+  min-width: 90px;
+  padding: 0.5rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .dates-list {

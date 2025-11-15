@@ -1,0 +1,162 @@
+.today-reminders {
+  padding: 1.25rem;
+}
+
+.today-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.today-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--primary);
+}
+
+.today-count {
+  background: var(--primary);
+  color: white;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.today-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  color: var(--text-light);
+}
+
+.today-empty .emoji {
+  font-size: 1.5rem;
+}
+
+.today-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.today-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-light);
+}
+
+.today-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.today-important-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.today-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.today-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.today-emoji {
+  font-size: 1.5rem;
+}
+
+.today-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.today-label {
+  font-weight: 600;
+}
+
+.today-subtext {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.today-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.today-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #332900;
+}
+
+.today-status.due {
+  background: #ff4757;
+  color: white;
+}
+
+.today-done-btn {
+  border: none;
+  background: var(--success);
+  color: white;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.today-done-btn:hover {
+  transform: translateY(-1px);
+  background: var(--success-dark, #1dd1a1);
+}
+
+.today-important-item {
+  display: flex;
+  align-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.today-important-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.today-important-emoji {
+  font-size: 1.3rem;
+}
+
+.today-important-texts {
+  display: flex;
+  flex-direction: column;
+}
+
