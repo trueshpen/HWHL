@@ -18,12 +18,17 @@ HWHL/
 │   │   ├── ImportantDates.css
 │   │   ├── NotesView.jsx
 │   │   ├── NotesView.css
+│   │   ├── PasswordProtection.jsx
+│   │   ├── PasswordProtection.css
 │   │   ├── Reminders.jsx
-│   │   └── Reminders.css
+│   │   ├── Reminders.css
+│   │   ├── TodayReminders.jsx
+│   │   └── TodayReminders.css
 │   ├── utils/             # Utility functions
 │   │   ├── constants.js
 │   │   ├── cycleUtils.js
 │   │   ├── notifications.js
+│   │   ├── reminderUtils.js
 │   │   └── storage.js
 │   ├── App.jsx            # Main app component
 │   ├── App.css            # Main app styles
@@ -46,10 +51,12 @@ HWHL/
 
 ```
 App
+├── PasswordProtection
 ├── CalendarView
 │   ├── CycleTracker
 │   ├── ImportantDates
-│   └── Reminders
+│   ├── Reminders
+│   └── TodayReminders
 └── NotesView
 ```
 
@@ -57,13 +64,25 @@ App
 
 #### App.jsx
 - **Purpose**: Main application component with view routing
-- **State**: Manages current view (calendar/notes) and application data
+- **State**: Manages current view (calendar/notes), application data, and authentication state
 - **Features**: 
+  - Password protection (PasswordProtection component)
   - View switching between Calendar and Notes
   - Navigation header with notification permission button
   - Data synchronization with server
   - Daily notification scheduling
   - Test notification functionality
+
+#### PasswordProtection.jsx
+- **Purpose**: Password protection screen for app access
+- **Props**: `onAuthenticated` (callback when password is correct)
+- **Features**:
+  - Password input form
+  - Session-based authentication (stored in sessionStorage)
+  - Prevents access to app until correct password is entered
+  - Returns null when authenticated (hides itself)
+- **Key Functions**:
+  - `handleSubmit()` - Validate password and authenticate
 
 #### CalendarView.jsx
 - **Purpose**: Main calendar interface with event management
@@ -144,6 +163,20 @@ App
   - `handleAddLike/Dislike()` - Add items to lists
   - `handleToggleWishlistItem()` - Mark wishlist items as done
 
+#### TodayReminders.jsx
+- **Purpose**: Display today's reminders and important dates in a summary view
+- **Props**: `data`, `onUpdate`
+- **Features**:
+  - Shows pending reminders that are due today
+  - Displays important dates happening today
+  - Shows cycle alerts (9 days before expected period)
+  - Quick action buttons to mark reminders as done
+  - Integrated into CalendarView sidebar
+- **Key Functions**:
+  - Filters reminders by `shouldShowTodayReminder()` utility
+  - Displays today's important dates
+  - Handles reminder completion actions
+
 ### Utilities
 
 #### storage.js
@@ -183,14 +216,35 @@ App
   - Shows browser notification if any notifications exist
   - Prevents duplicate notifications (once per day)
 
+#### reminderUtils.js
+- **Purpose**: Reminder-related utility functions and constants
+- **Exports**:
+  - `reminderTypes` - Reminder type definitions with emoji, label, default frequency, and color
+  - `getReminderEvents()` - Get events array from reminder
+  - `getLastEventDate()` - Get most recent event date from reminder
+  - `getDaysSince()` - Calculate days since last reminder completion
+  - `getDaysUntilNext()` - Calculate days until next reminder is due
+  - `getStatusBadgeColor()` - Get color for reminder status badge
+  - `getStatus()` - Calculate reminder status object (due, pending, ok, planned, etc.)
+  - `getPreviousEventDate()` - Get second most recent event date
+  - `isReminderDoneToday()` - Check if reminder was completed today
+  - `shouldShowTodayReminder()` - Determine if reminder should be shown in TodayReminders
+  - `formatLastEventLabel()` - Format last event date for display
+- **Features**:
+  - Supports planned dates for date nights
+  - Handles different reminder types (flowers, surprises, dateNights, general)
+  - Status calculation with planned date support
+
 #### constants.js
 - **Purpose**: Application constants and phase definitions
 - **Exports**:
   - `PHASES` - Cycle phase definitions (period, post-period, ovulation, pre-period)
   - `DEFAULT_CYCLE_LENGTH` - Default cycle length (28 days)
-  - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days)
-  - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (8 days)
-  - `getPhaseFromCycleDayWithLength()` - Phase calculation function
+  - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days, 5 days total including start and end)
+  - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (9 days)
+  - `MAX_CYCLE_LENGTH_DAYS` - Maximum valid cycle length for validation (50 days)
+  - `getPhaseFromCycleDay()` - Get phase from cycle day (1-28)
+  - `getPhaseFromCycleDayWithLength()` - Phase calculation function with custom cycle length
 
 ## Backend Architecture
 

@@ -8,6 +8,7 @@ import './App.css'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authKey, setAuthKey] = useState(0)
   const [currentView, setCurrentView] = useState('calendar')
   const [data, setData] = useState(loadDataSync())
 
@@ -34,9 +35,18 @@ function App() {
     await showTestNotification()
   }
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('app_authenticated')
+    setIsAuthenticated(false)
+    setAuthKey(prev => prev + 1) // Force PasswordProtection to remount
+  }
+
   return (
     <>
-      <PasswordProtection onAuthenticated={() => setIsAuthenticated(true)} />
+      <PasswordProtection 
+        key={authKey}
+        onAuthenticated={() => setIsAuthenticated(true)} 
+      />
       {isAuthenticated && (
         <div className="app">
           <header className="app-header">
@@ -55,13 +65,22 @@ function App() {
                 📝 Notes
               </button>
             </nav>
-            <button
-              className="allow-notifications-btn"
-              onClick={handleTestNotification}
-              title="Allow notifications"
-            >
-              Allow notifications
-            </button>
+            <div className="header-actions">
+              <button
+                className="allow-notifications-btn"
+                onClick={handleTestNotification}
+                title="Allow notifications"
+              >
+                Allow notifications
+              </button>
+              <button
+                className="logout-btn"
+                onClick={handleLogout}
+                title="Log out"
+              >
+                Log Out
+              </button>
+            </div>
           </header>
 
           <main className="app-main">

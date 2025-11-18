@@ -12,7 +12,7 @@ A beautiful web application to help you remember and track everything that makes
 ### 🔄 Cycle Tracking
 - Track cycle start and end dates
 - Automatic calculation of expected next start date
-- 8-day advance notification before expected start
+- 9-day advance notification before expected start
 - Customizable cycle length
 
 ### 📅 Important Dates

@@ -117,6 +117,13 @@
   box-shadow: 0 4px 12px var(--shadow);
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .allow-notifications-btn {
   padding: 0.4rem 0.8rem;
   background: var(--warning);
@@ -136,6 +143,27 @@
   border-color: #f0b94a;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(253, 203, 110, 0.3);
+}
+
+.logout-btn {
+  padding: 0.4rem 0.8rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  background: var(--accent);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
 }
 
 .app-main {

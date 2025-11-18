@@ -33,7 +33,7 @@ The main calendar interface displays a monthly view with all events, reminders, 
 
 **Event Types:**
 - 🌛 Period start/end
-- 🔔 8-day notification before expected period
+- 🔔 9-day notification before expected period
 - 📅 Important dates
 - 🎉 Birthdays
 - 🌸 Flowers reminder
@@ -66,7 +66,7 @@ Track menstrual cycle with automatic calculations and phase-based suggestions.
 - Organized by phase for easy reference
 
 **Notifications:**
-- 8-day advance notification before expected period start
+- 9-day advance notification before expected period start
 - Visual indicator on calendar
 - Helps with planning and preparation
 
@@ -324,7 +324,7 @@ The app supports browser notifications to alert you about important events and r
 - **Notification Types**:
   - Due reminders (flowers, surprises, date nights, general)
   - Important dates (1 month, 1 week, 1 day before, and day of)
-  - Cycle alerts (8 days before expected period start)
+  - Cycle alerts (9 days before expected period start)
 - **Permission**: Click "Allow notifications" button in header to enable
 - **Smart Behavior**:
   - Shows notification only once per day
@@ -344,7 +344,7 @@ The app supports browser notifications to alert you about important events and r
 
 ### Calendar Notifications
 
-- **8-day alert**: Before expected period start
+- **9-day alert**: Before expected period start
 - **Important date reminders**: 1 month, 1 week, 1 day before
 - **Visual indicators**: Notification dots on calendar days
 
