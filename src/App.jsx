@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import CalendarView from './components/CalendarView'
 import NotesView from './components/NotesView'
+import PasswordProtection from './components/PasswordProtection'
 import { loadDataSync, loadData } from './utils/storage'
 import { scheduleDailyNotifications, showTestNotification } from './utils/notifications'
 import './App.css'
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentView, setCurrentView] = useState('calendar')
   const [data, setData] = useState(loadDataSync())
 
@@ -33,36 +35,41 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>💕 Wife Happiness App</h1>
-        <nav className="view-switcher">
-          <button
-            className={currentView === 'calendar' ? 'active' : ''}
-            onClick={() => setCurrentView('calendar')}
-          >
-            📅 Calendar
-          </button>
-          <button
-            className={currentView === 'notes' ? 'active' : ''}
-            onClick={() => setCurrentView('notes')}
-          >
-            📝 Notes
-          </button>
-        </nav>
-        <button
-          className="allow-notifications-btn"
-          onClick={handleTestNotification}
-          title="Allow notifications"
-        >
-          Allow notifications
-        </button>
-      </header>
+    <>
+      <PasswordProtection onAuthenticated={() => setIsAuthenticated(true)} />
+      {isAuthenticated && (
+        <div className="app">
+          <header className="app-header">
+            <h1>💕 Wife Happiness App</h1>
+            <nav className="view-switcher">
+              <button
+                className={currentView === 'calendar' ? 'active' : ''}
+                onClick={() => setCurrentView('calendar')}
+              >
+                📅 Calendar
+              </button>
+              <button
+                className={currentView === 'notes' ? 'active' : ''}
+                onClick={() => setCurrentView('notes')}
+              >
+                📝 Notes
+              </button>
+            </nav>
+            <button
+              className="allow-notifications-btn"
+              onClick={handleTestNotification}
+              title="Allow notifications"
+            >
+              Allow notifications
+            </button>
+          </header>
 
-      <main className="app-main">
-        {currentView === 'calendar' ? <CalendarView /> : <NotesView />}
-      </main>
-    </div>
+          <main className="app-main">
+            {currentView === 'calendar' ? <CalendarView /> : <NotesView />}
+          </main>
+        </div>
+      )}
+    </>
   )
 }
 
