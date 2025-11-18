@@ -121,6 +121,20 @@ Then open the URL shown in the terminal
 When you deploy to GitHub Pages, the hosted app will also call `https://localhost:3000/api`.  
 Keep the HTTPS API server running on your PC and make sure the certificate is trusted in the browser where you open the GitHub Pages version.
 
+### Install as a mobile / desktop app (PWA)
+
+1. Otevři buď lokální verzi (`http://localhost:5173`) nebo GitHub Pages build.
+2. V Chromu/Edge/Operě klikni na ikonu „Install app“ v adresním řádku (na mobilu „Add to home screen“).
+3. Aplikace se nainstaluje jako samostatná ikona, funguje offline (použije poslední data) a dostane vlastní okno.
+4. Pokud aktualizuješ kód, service worker se sám obnoví při příštím otevření.
+
+### Notifications
+
+- Klikni na tlačítko **Allow notifications** v záhlaví – prohlížeč tě vyzve k povolení.
+- Potvrzení „Test notification“ zobrazí toast z PWA service workeru (funguje i v instalované verzi).
+- Denní připomínky se plánují na 10:00 lokálního času; pokud je v ten den něco důležitého, přijde notifikace.
+- Prohlížeče na iOS mají omezenou podporu – upozornění se zobrazí jen pokud je PWA přidaná na plochu a jsou povolené notifikace i v nastavení systému.
+
 ## Data Storage
 
 **Automatic Data Storage:**

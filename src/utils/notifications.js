@@ -1,3 +1,38 @@
+const NOTIFICATION_ICON = '/icons/icon-192.png'
+const NOTIFICATION_BADGE = '/icons/icon-192.png'
+
+const displayNotification = async (title, options = {}) => {
+  if (!('Notification' in window)) {
+    console.warn('Notifications are not supported in this browser')
+    return
+  }
+
+  const payload = {
+    body: options.body ?? 'You have a new reminder in the HWHL app',
+    icon: options.icon ?? NOTIFICATION_ICON,
+    badge: options.badge ?? NOTIFICATION_BADGE,
+    tag: options.tag ?? `hwhl-${Date.now()}`,
+    vibrate: options.vibrate ?? [200, 100, 200],
+    requireInteraction: options.requireInteraction ?? false,
+    data: {
+      url: options.data?.url ?? window.location.origin,
+      ...options.data,
+    },
+  }
+
+  try {
+    const registration = await navigator.serviceWorker?.ready
+    if (registration?.showNotification) {
+      await registration.showNotification(title, payload)
+      return
+    }
+  } catch (err) {
+    console.warn('SW notification failed, falling back to window Notification', err)
+  }
+
+  new Notification(title, payload)
+}
+
 // Request notification permission
 export const requestNotificationPermission = async () => {
   if (!('Notification' in window)) {
@@ -25,11 +60,9 @@ export const showTestNotification = async () => {
     return false
   }
 
-  new Notification('', {
-    body: 'New notification in the HWHL app',
-    icon: '/favicon.ico',
+  await displayNotification('HWHL notification', {
+    body: 'Push notifications are working on this device 💕',
     tag: `test-${Date.now()}`,
-    requireInteraction: false
   })
 
   return true
@@ -58,11 +91,10 @@ export const checkAndShowNotifications = async (data) => {
     localStorage.setItem('lastNotificationDate', today)
 
     // Show notification
-    new Notification('', {
-      body: 'New notification in the HWHL app',
-      icon: '/favicon.ico',
+    await displayNotification('HWHL reminder', {
+      body: 'Something needs your attention today 💡',
       tag: `notification-${today}`,
-      requireInteraction: false
+      data: { url: window.location.origin },
     })
   }
 }

@@ -1,7 +1,14 @@
+:root {
+  --layout-max-width: 1400px;
+  --layout-padding-desktop: 2rem;
+  --layout-padding-mobile: 1rem;
+}
+
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--bg);
 }
 
 .app-header {
@@ -121,7 +128,47 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
   flex-shrink: 0;
+}
+
+.header-actions .backup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.status-pill {
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status-pill.success {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2d7a34;
+  border: 1.5px solid rgba(76, 175, 80, 0.4);
+}
+
+.status-pill.error {
+  background: rgba(231, 76, 60, 0.15);
+  color: #b13a2e;
+  border: 1.5px solid rgba(231, 76, 60, 0.4);
+}
+
+.status-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .allow-notifications-btn {
@@ -168,10 +215,19 @@
 
 .app-main {
   flex: 1;
-  padding: 2rem;
-  max-width: 1400px;
+  padding: var(--layout-padding-desktop);
+  max-width: var(--layout-max-width);
   width: 100%;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1200px) {
+  .app-main {
+    gap: 2rem;
+  }
 }
 
 .file-access-prompt {
@@ -271,14 +327,30 @@
 @media (max-width: 768px) {
   .app-header {
     padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .app-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .header-actions button,
+  .header-actions .backup-buttons button {
+    width: 100%;
   }
 
   .view-switcher {
     flex-direction: column;
+    width: 100%;
   }
 
   .view-switcher button {
@@ -286,7 +358,8 @@
   }
 
   .app-main {
-    padding: 1rem;
+    padding: var(--layout-padding-mobile);
+    gap: 1rem;
   }
 
   .file-access-prompt {
