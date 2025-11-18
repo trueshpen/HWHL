@@ -1,7 +1,7 @@
 import { DEFAULT_CYCLE_LENGTH, MAX_CYCLE_LENGTH_DAYS } from './constants'
 
 const STORAGE_KEY = 'wife-happiness-app-data'
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = 'https://localhost:3000/api'
 
 const defaultData = {
   cycle: {

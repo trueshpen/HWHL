@@ -1,7 +1,7 @@
 import express from 'express'
-import cors from 'cors'
 import fs from 'fs'
 import path from 'path'
+import https from 'https'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,10 +11,37 @@ const app = express()
 const PORT = 3000
 // Data file is in the parent directory's data folder
 const DATA_FILE = path.join(__dirname, '..', 'data', 'wife-happiness-data.json')
+const CERT_DIR = path.join(__dirname, '..', 'cert')
+const KEY_PATH = path.join(CERT_DIR, 'local-key.pem')
+const CERT_PATH = path.join(CERT_DIR, 'local-cert.pem')
 
 // Middleware
-app.use(cors())
 app.use(express.json())
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*'
+  res.header('Access-Control-Allow-Origin', origin)
+  res.header('Vary', 'Origin')
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+  const requestedHeaders = req.headers['access-control-request-headers']
+  if (requestedHeaders) {
+    res.header('Access-Control-Allow-Headers', requestedHeaders)
+  } else {
+    res.header('Access-Control-Allow-Headers', 'Content-Type')
+  }
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Max-Age', '86400')
+
+  if (req.headers['access-control-request-private-network']) {
+    res.header('Access-Control-Allow-Private-Network', 'true')
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204)
+  }
+
+  next()
+})
 
 // Ensure data directory exists
 const dataDir = path.dirname(DATA_FILE)
@@ -106,11 +133,32 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// Start server
-app.listen(PORT, () => {
+const ensureCertificates = () => {
+  const hasKey = fs.existsSync(KEY_PATH)
+  const hasCert = fs.existsSync(CERT_PATH)
+
+  if (!hasKey || !hasCert) {
+    console.error('\n⚠️  HTTPS certificates not found.')
+    console.error('Expected files:')
+    console.error(`  Key : ${KEY_PATH}`)
+    console.error(`  Cert: ${CERT_PATH}`)
+    console.error('\nRun "npm run generate-cert" to create them, then trust the certificate locally.')
+    process.exit(1)
+  }
+
+  return {
+    key: fs.readFileSync(KEY_PATH),
+    cert: fs.readFileSync(CERT_PATH),
+  }
+}
+
+const credentials = ensureCertificates()
+
+https.createServer(credentials, app).listen(PORT, () => {
   console.log(`\n========================================`)
-  console.log(`  API Server running on port ${PORT}`)
+  console.log(`  HTTPS API Server running on https://localhost:${PORT}`)
   console.log(`  Data file: ${DATA_FILE}`)
+  console.log(`  Cert dir : ${CERT_DIR}`)
   console.log(`========================================\n`)
 })
 

@@ -73,7 +73,27 @@ The built files will be in the `dist` directory.
 
 ### Running the App
 
-**IMPORTANT: You must start the server first!**
+> **New:** The API now runs over **HTTPS** so both the local and GitHub Pages builds share the same data.  
+> Run the certificate setup once, then start the servers as usual.
+
+#### 1) Generate the local HTTPS certificate (one-time)
+
+```bash
+npm run generate-cert
+```
+
+This creates `cert/local-cert.pem` and `cert/local-key.pem`.  
+Import `cert/local-cert.pem` into your operating system/browser trust store so the certificate is trusted (otherwise the browser will show a warning the first time you call the API).
+
+#### 2) Start the API server
+
+```bash
+npm run server
+```
+
+The server is now available at `https://localhost:3000/api`.
+
+#### 3) Start the Vite dev server (optional shortcut: `npm run dev:all`)
 
 **Method 1: Use the batch file (Easiest)**
 1. Double-click `scripts/start-server.bat`
@@ -95,6 +115,11 @@ npm run preview
 Then open the URL shown in the terminal
 
 **Note:** If you see "ERR_CONNECTION_REFUSED", it means the server isn't running. Start it first using Method 1 or 2 above.
+
+#### GitHub Pages build
+
+When you deploy to GitHub Pages, the hosted app will also call `https://localhost:3000/api`.  
+Keep the HTTPS API server running on your PC and make sure the certificate is trusted in the browser where you open the GitHub Pages version.
 
 ## Data Storage
 
