@@ -33,7 +33,6 @@ const defaultData = {
       { id: 'general-3', type: 'love', text: 'Support her, take care of her' }
     ] },
   },
-  preferredGifts: [],
 }
 
 // Calculate average cycle length from periods

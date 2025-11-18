@@ -7,8 +7,10 @@ The Wife Happiness App uses a RESTful API built with Express.js. The API provide
 ## Base URL
 
 ```
-http://localhost:3000/api
+https://localhost:3000/api
 ```
+
+**Note**: The API server uses HTTPS with self-signed certificates. You may need to accept the certificate warning in your browser or trust the certificate locally.
 
 ## Endpoints
 
@@ -216,7 +218,7 @@ The server automatically creates the `data/` directory if it doesn't exist.
 
 ## CORS Configuration
 
-The API has CORS enabled to allow requests from the frontend development server (typically `http://localhost:5173`).
+The API has CORS enabled to allow requests from the frontend development server (typically `http://localhost:5173`). The server uses HTTPS for secure communication.
 
 ## Error Handling
 
@@ -271,28 +273,28 @@ This ensures:
 
 ### Manual Testing
 
-1. **Start Server**: `npm run server` or `scripts/start-server.bat`
-2. **Test GET**: `curl http://localhost:3000/api/data`
+1. **Start Server**: `npm run server` or `scripts/start-server.bat` (requires SSL certificates - run `npm run generate-cert` first)
+2. **Test GET**: `curl -k https://localhost:3000/api/data` (use `-k` flag to ignore self-signed certificate)
 3. **Test POST**: 
    ```bash
-   curl -X POST http://localhost:3000/api/data \
+   curl -k -X POST https://localhost:3000/api/data \
      -H "Content-Type: application/json" \
      -d @data/wife-happiness-data.json
    ```
-4. **Test Health**: `curl http://localhost:3000/api/health`
+4. **Test Health**: `curl -k https://localhost:3000/api/health`
 
 ### Using Browser DevTools
 
 1. Open browser console (F12)
 2. Test GET:
    ```javascript
-   fetch('http://localhost:3000/api/data')
+   fetch('https://localhost:3000/api/data')
      .then(r => r.json())
      .then(console.log)
    ```
 3. Test POST:
    ```javascript
-   fetch('http://localhost:3000/api/data', {
+   fetch('https://localhost:3000/api/data', {
      method: 'POST',
      headers: { 'Content-Type': 'application/json' },
      body: JSON.stringify({ /* your data */ })

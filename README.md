@@ -193,9 +193,11 @@ For detailed documentation, see:
 
 - `npm run dev` - Start Vite development server
 - `npm run build` - Build for production
+- `npm run build:github` - Build for GitHub Pages deployment
 - `npm run preview` - Preview production build
-- `npm run server` - Start backend API server
+- `npm run server` - Start backend API server (HTTPS)
 - `npm run dev:all` - Start both frontend and backend concurrently
+- `npm run generate-cert` - Generate SSL certificates for HTTPS server
 
 ---
 

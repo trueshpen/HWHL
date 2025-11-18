@@ -64,7 +64,7 @@ App
 
 #### App.jsx
 - **Purpose**: Main application component with view routing
-- **State**: Manages current view (calendar/notes), application data, and authentication state
+- **State**: Manages current view (calendar/notes), application data, authentication state, backup status, and notification status
 - **Features**: 
   - Password protection (PasswordProtection component)
   - View switching between Calendar and Notes
@@ -72,6 +72,14 @@ App
   - Data synchronization with server
   - Daily notification scheduling
   - Test notification functionality
+  - Data export/import functionality
+  - Logout functionality
+  - Status messages for backup and notifications
+- **Key Functions**:
+  - `handleTestNotification()` - Test and enable browser notifications
+  - `handleLogout()` - Log out and reset authentication
+  - `handleExportData()` - Export data to JSON file
+  - `handleImportData()` - Import data from JSON file
 
 #### PasswordProtection.jsx
 - **Purpose**: Password protection screen for app access
@@ -251,9 +259,19 @@ App
 ### Server (server/index.js)
 
 - **Framework**: Express.js
+- **Protocol**: HTTPS (requires SSL certificates)
 - **Port**: 3000
-- **CORS**: Enabled for local development
+- **CORS**: Enabled for local development with dynamic origin support
 - **Data Storage**: JSON file in `data/wife-happiness-data.json`
+- **Certificates**: SSL certificates stored in `cert/` directory
+  - `local-key.pem` - Private key
+  - `local-cert.pem` - Certificate
+  - Generated via `npm run generate-cert`
+- **Features**:
+  - HTTPS server with self-signed certificates
+  - CORS with credentials support
+  - Private network access support
+  - Automatic certificate validation on startup
 
 ### API Endpoints
 

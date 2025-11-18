@@ -106,8 +106,7 @@ app.get('/api/data', (req, res) => {
             { id: 'general-3', type: 'love', text: 'Support her, take care of her' }
           ] 
         }
-      },
-      preferredGifts: []
+      }
     })
   }
 })
