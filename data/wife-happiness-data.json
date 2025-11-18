@@ -35,7 +35,7 @@
       "id": 1762863671096,
       "name": "Birthday",
       "date": "1992-12-03",
-      "gifts": "1. Savoy - reserved 11:00\n2. Cool-flowers - ordered with pickup on Dec-03\n3. Gift?"
+      "gifts": "1. Savoy - reserved 11:00\n2. Cool-flowers - ordered with pickup on Dec-03\n3. Gift - Apple watches"
     },
     {
       "id": 1762895019650,
@@ -48,6 +48,10 @@
     {
       "id": 1762964041220,
       "text": "Cherry"
+    },
+    {
+      "id": 1763454924928,
+      "text": "Beef Burrito from Burrito Loko, a bit spicy"
     }
   ],
   "dislikes": [
@@ -56,7 +60,13 @@
       "text": "Orange & yellow"
     }
   ],
-  "wishlist": [],
+  "wishlist": [
+    {
+      "id": 1763454941105,
+      "text": "Apple Watches",
+      "done": false
+    }
+  ],
   "reminders": {
     "flowers": {
       "enabled": true,
@@ -91,31 +101,37 @@
           "text": "Mono-bouquets",
           "id": "note-1762963892176-0.11883032114685033"
         }
-      ]
+      ],
+      "plannedDate": null
     },
     "surprises": {
       "enabled": true,
-      "frequency": 2,
-      "lastDone": "2025-11-13T23:00:00.000Z",
+      "frequency": 3,
+      "lastDone": "2025-11-16T23:00:00.000Z",
       "events": [
+        "2025-11-17",
         "2025-11-14",
         "2025-11-11",
         "2025-11-10"
       ],
-      "notes": []
+      "notes": [],
+      "plannedDate": null
     },
     "dateNights": {
       "enabled": true,
       "frequency": 7,
       "lastDone": null,
       "events": [],
-      "notes": []
+      "notes": [],
+      "plannedDate": "2025-11-21"
     },
     "general": {
       "enabled": true,
       "frequency": 1,
-      "lastDone": "2025-11-13T23:00:00.000Z",
+      "lastDone": "2025-11-18T08:15:32.334Z",
       "events": [
+        "2025-11-18",
+        "2025-11-17",
         "2025-11-14",
         "2025-11-14",
         "2025-11-14",
@@ -146,7 +162,8 @@
           "type": "love",
           "text": "Support her, take care of her"
         }
-      ]
+      ],
+      "plannedDate": null
     }
   },
   "preferredGifts": []

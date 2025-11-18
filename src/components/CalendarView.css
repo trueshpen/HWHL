@@ -397,11 +397,17 @@
   border-color: #ee3542;
 }
 
-.reminders-grid {
+.reminders-row {
   display: flex;
-  flex-direction: row;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.reminder-plan-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
 }
 
 .reminder-icon-btn {
@@ -446,6 +452,11 @@
 .reminder-icon-btn.remove:hover {
   background: #ee3542;
   border-color: #ee3542;
+}
+
+.reminder-icon-btn.plan {
+  border-style: dashed;
+  font-size: 1rem;
 }
 
 .event-icon-btn {

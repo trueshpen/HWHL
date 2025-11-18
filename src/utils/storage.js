@@ -26,7 +26,7 @@ const defaultData = {
       notes: [] // Array of { type: 'like'|'dislike', text: string, id: string }
     },
     surprises: { enabled: true, frequency: 2, lastDone: null, events: [] },
-    dateNights: { enabled: true, frequency: 7, lastDone: null, events: [], notes: [] },
+    dateNights: { enabled: true, frequency: 7, lastDone: null, events: [], notes: [], plannedDate: null },
     general: { enabled: true, frequency: 1, lastDone: null, events: [], notes: [
       { id: 'general-1', type: 'love', text: 'She is the love of my life' },
       { id: 'general-2', type: 'love', text: 'I must make her happy EVERY DAY' },
@@ -94,7 +94,8 @@ const migrateReminderData = (oldReminders) => {
           { id: 'general-1', type: 'love', text: 'She is the love of my life' },
           { id: 'general-2', type: 'love', text: 'I must make her happy EVERY DAY' },
           { id: 'general-3', type: 'love', text: 'Support her, take care of her' }
-        ] : []) // Add notes array if missing, with defaults for general
+        ] : []), // Add notes array if missing, with defaults for general
+        plannedDate: oldReminders[type].plannedDate || null
       }
       // Migrate old default frequency for surprises
       if (type === 'surprises' && oldReminders[type].frequency === 14) {

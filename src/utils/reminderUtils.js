@@ -36,6 +36,16 @@ export const getDaysUntilNext = (reminder) => {
 export const getStatusBadgeColor = (reminder) => {
   if (!reminder) return '#ccc'
   if (!reminder.enabled) return '#ccc'
+  if (reminder.plannedDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const planned = new Date(`${reminder.plannedDate}T00:00:00`)
+    planned.setHours(0, 0, 0, 0)
+    const diff = differenceInDays(planned, today)
+    if (diff > 0) return 'var(--info, #48dbfb)'
+    if (diff === 0) return 'var(--warning)'
+    return '#ff4757'
+  }
   const lastEvent = getLastEventDate(reminder)
   if (!lastEvent) return '#ccc'
 
@@ -51,14 +61,48 @@ export const getStatusBadgeColor = (reminder) => {
 export const getStatus = (reminder, type) => {
   if (!reminder) return { status: 'pending', message: 'Never done' }
   if (!reminder.enabled) return { status: 'disabled', message: 'Disabled' }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (type === 'dateNights' && reminder.plannedDate) {
+    const plannedDate = new Date(`${reminder.plannedDate}T00:00:00`)
+    plannedDate.setHours(0, 0, 0, 0)
+    const diff = differenceInDays(plannedDate, today)
+    if (diff > 0) {
+      return {
+        status: 'planned',
+        message: `Planned in ${diff} day${diff !== 1 ? 's' : ''}`,
+        plannedDate: reminder.plannedDate,
+        daysUntilPlanned: diff,
+        isDueToday: false
+      }
+    }
+    if (diff === 0) {
+      return {
+        status: 'planned-today',
+        message: 'Date night today!',
+        plannedDate: reminder.plannedDate,
+        daysUntilPlanned: 0,
+        isDueToday: true
+      }
+    }
+    const daysOverdue = Math.abs(diff)
+    return {
+      status: 'planned-overdue',
+      message: `Planned ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`,
+      plannedDate: reminder.plannedDate,
+      daysUntilPlanned: diff,
+      isDueToday: true
+    }
+  }
+
   const lastEvent = getLastEventDate(reminder)
   if (!lastEvent) return { status: 'pending', message: 'Never done' }
 
   const daysSince = getDaysSince(reminder)
   if (daysSince === null) return { status: 'pending', message: 'Never done' }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   const lastEventDate = typeof lastEvent === 'string'
     ? (lastEvent.includes('T') ? new Date(lastEvent) : new Date(lastEvent + 'T00:00:00'))
     : new Date(lastEvent)
@@ -104,6 +148,16 @@ export const isReminderDoneToday = (reminder) => {
 
 export const shouldShowTodayReminder = (reminder, type) => {
   if (!reminder || !reminder.enabled) return false
+  const plannedDate = reminder?.plannedDate
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (type === 'dateNights' && plannedDate) {
+    const planned = new Date(`${plannedDate}T00:00:00`)
+    planned.setHours(0, 0, 0, 0)
+    if (planned <= today) {
+      return true
+    }
+  }
   if (type === 'general') {
     return !isReminderDoneToday(reminder)
   }

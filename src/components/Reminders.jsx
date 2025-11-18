@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { format, isSameDay } from 'date-fns'
-import { updateData } from '../utils/storage'
+import { updateData, saveData } from '../utils/storage'
 import {
   reminderTypes,
   getStatus,
@@ -32,6 +32,8 @@ function Reminders({ data, onUpdate, onExpandChange }) {
   const [newNoteType, setNewNoteType] = useState('like')
   const [currentMotivationalPhrase, setCurrentMotivationalPhrase] = useState(motivationalPhrases[0])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [planningType, setPlanningType] = useState(null)
+  const [plannedDateInput, setPlannedDateInput] = useState('')
   
   const handleExpandChange = (expanded) => {
     setIsExpanded(expanded)
@@ -72,14 +74,29 @@ function Reminders({ data, onUpdate, onExpandChange }) {
       setCurrentMotivationalPhrase(randomPhrase)
     }
     
+    let updatedReminder = {
+      ...data.reminders[type],
+      lastDone: now.toISOString(),
+      events: [...existingEvents, eventDate].sort().reverse()
+    }
+
+    if (type === 'dateNights' && updatedReminder.plannedDate) {
+      const planned = new Date(`${updatedReminder.plannedDate}T00:00:00`)
+      planned.setHours(0, 0, 0, 0)
+      const eventDateObj = new Date(`${eventDate}T00:00:00`)
+      eventDateObj.setHours(0, 0, 0, 0)
+      if (eventDateObj >= planned) {
+        updatedReminder = {
+          ...updatedReminder,
+          plannedDate: null
+        }
+      }
+    }
+
     const newData = updateData({
       reminders: {
         ...data.reminders,
-        [type]: {
-          ...data.reminders[type],
-          lastDone: now.toISOString(),
-          events: [...existingEvents, eventDate].sort().reverse() // Sort descending (newest first)
-        }
+        [type]: updatedReminder
       }
     })
     onUpdate(newData)
@@ -188,6 +205,56 @@ function Reminders({ data, onUpdate, onExpandChange }) {
     onUpdate(newData)
   }
 
+  const handleStartPlan = (type) => {
+    const existingDate = data.reminders[type]?.plannedDate
+    setPlanningType(type)
+    if (existingDate) {
+      setPlannedDateInput(existingDate)
+    } else {
+      const today = new Date()
+      setPlannedDateInput(format(today, 'yyyy-MM-dd'))
+    }
+  }
+
+  const applyReminderUpdate = (type, updater) => {
+    const reminder = data.reminders[type]
+    if (!reminder) return
+    const updatedReminder = updater(reminder)
+    const newData = {
+      ...data,
+      reminders: {
+        ...data.reminders,
+        [type]: updatedReminder
+      }
+    }
+    saveData(newData)
+    onUpdate(newData)
+    return newData
+  }
+
+  const handlePlanDateNight = (type) => {
+    if (!plannedDateInput) return
+    applyReminderUpdate(type, (reminder) => ({
+      ...reminder,
+      plannedDate: plannedDateInput
+    }))
+    setPlanningType(null)
+    setPlannedDateInput('')
+  }
+
+  const handleClearPlan = (type) => {
+    const reminder = data.reminders[type]
+    if (!reminder?.plannedDate) return
+    applyReminderUpdate(type, (rem) => ({
+      ...rem,
+      plannedDate: null
+    }))
+    if (planningType === type) {
+      setPlanningType(null)
+      setPlannedDateInput('')
+    }
+  }
+
   return (
     <div className={`reminders card ${isExpanded ? 'expanded' : ''}`}>
       <div 
@@ -271,7 +338,13 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                     ) : (
                       <>
                         <div className="reminder-info">
-                          <span>{type === 'general' ? 'Every day' : `Every ${reminder.frequency} days`}</span>
+                          <span>
+                            {type === 'general'
+                              ? 'Every day'
+                              : (type === 'dateNights' && reminder.plannedDate)
+                                ? `Planned for ${format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM')}`
+                                : `Every ${reminder.frequency} days`}
+                          </span>
                           {getLastEventDate(reminder) && (() => {
                             const lastEventDate = getLastEventDate(reminder)
                             const lastEvent = new Date(lastEventDate.includes('T') ? lastEventDate : lastEventDate + 'T00:00:00')
@@ -358,6 +431,65 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                       </>
                     )}
                   </div>
+
+                  {type === 'dateNights' && reminder.enabled && (
+                    <div className="date-plan-section">
+                      {planningType === type ? (
+                        <div className="plan-date-form">
+                          <label>Schedule next date</label>
+                          <input
+                            type="date"
+                            value={plannedDateInput}
+                            min={format(new Date(), 'yyyy-MM-dd')}
+                            onChange={(e) => setPlannedDateInput(e.target.value)}
+                          />
+                          <div className="plan-actions">
+                            <button
+                              className="btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                setPlanningType(null)
+                                setPlannedDateInput('')
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="btn-primary"
+                              type="button"
+                              onClick={() => handlePlanDateNight(type)}
+                              disabled={!plannedDateInput}
+                            >
+                              Save plan
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="plan-summary">
+                          {reminder.plannedDate ? (
+                            <>
+                              <span>
+                                Next date night on{' '}
+                                <strong>{format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM yyyy')}</strong>
+                              </span>
+                              <div className="plan-buttons">
+                                <button className="btn-outline" onClick={() => handleStartPlan(type)}>
+                                  Reschedule
+                                </button>
+                                <button className="btn-clear" onClick={() => handleClearPlan(type)}>
+                                  Remove
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <button className="btn-plan" onClick={() => handleStartPlan(type)}>
+                              Plan next date night
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {type === 'general' && (
                     <div className="reminder-notes">

@@ -1,5 +1,6 @@
-import { format, isSameDay } from 'date-fns'
+import { format, isSameDay, addDays } from 'date-fns'
 import { updateData } from '../utils/storage'
+import { PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import {
   reminderTypes,
   shouldShowTodayReminder,
@@ -49,7 +50,15 @@ function TodayReminders({ data, onUpdate }) {
     })
     .filter(Boolean)
 
-  const totalItems = pendingReminders.length + todayImportantDates.length
+  // Check for 8-day alert
+  const has8DayAlert = data.cycle?.expectedNextStart && (() => {
+    const nextStart = new Date(data.cycle.expectedNextStart)
+    const notificationDate = addDays(nextStart, -PERIOD_NOTIFICATION_DAYS_BEFORE)
+    notificationDate.setHours(0, 0, 0, 0)
+    return isSameDay(notificationDate, today)
+  })()
+
+  const totalItems = pendingReminders.length + todayImportantDates.length + (has8DayAlert ? 1 : 0)
 
   const handleMarkDone = (type) => {
     const reminder = data.reminders[type]
@@ -98,7 +107,7 @@ function TodayReminders({ data, onUpdate }) {
             <>
               <div className="today-section-title">Reminders</div>
               <div className="today-list">
-                {pendingReminders.map(({ type, info, status, lastEventDate }) => (
+                {pendingReminders.map(({ type, info, reminder, status, lastEventDate }) => (
                   <div key={type} className="today-item">
                     <div className="today-info">
                       <span className="today-emoji">{info.emoji}</span>
@@ -107,6 +116,11 @@ function TodayReminders({ data, onUpdate }) {
                         {type !== 'general' && lastEventDate && (
                           <span className="today-subtext">
                             Last: {format(new Date(lastEventDate.includes('T') ? lastEventDate : `${lastEventDate}T00:00:00`), 'd MMM')}
+                          </span>
+                        )}
+                        {type === 'dateNights' && reminder?.plannedDate && (
+                          <span className="today-subtext">
+                            Planned for {format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM')}
                           </span>
                         )}
                       </div>
@@ -126,6 +140,25 @@ function TodayReminders({ data, onUpdate }) {
                     </div>
                   </div>
                 ))}
+              </div>
+            </>
+          )}
+
+          {has8DayAlert && (
+            <>
+              <div className="today-section-title">Alerts</div>
+              <div className="today-list">
+                <div className="today-item today-alert">
+                  <div className="today-info">
+                    <span className="today-emoji">🔔</span>
+                    <div className="today-texts">
+                      <span className="today-label">{PERIOD_NOTIFICATION_DAYS_BEFORE} Days Before</span>
+                      <span className="today-subtext">
+                        Period expected on {format(new Date(data.cycle.expectedNextStart), 'd MMM yyyy')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}

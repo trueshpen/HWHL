@@ -269,6 +269,92 @@
   transform: translateY(-2px);
 }
 
+.btn-plan,
+.btn-outline {
+  border-radius: 999px;
+  border: 2px solid var(--primary);
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-plan:hover,
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-outline {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(255, 107, 157, 0.08);
+}
+
+.date-plan-section {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.plan-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.plan-date-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan-date-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.plan-date-form input {
+  padding: 0.6rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.plan-date-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .frequency-edit {
   display: flex;
   align-items: center;

@@ -176,6 +176,14 @@ function CalendarView() {
         }
       })
     }
+
+    if (data.reminders?.dateNights?.plannedDate === dateStr) {
+      events.push({
+        type: 'planned-date-night',
+        label: 'Date night (planned)',
+        emoji: '💑'
+      })
+    }
     
     return events
   }
@@ -428,6 +436,16 @@ function CalendarView() {
       }
     })
 
+    if (data.reminders?.dateNights?.plannedDate === dateStr) {
+      events.push({
+        type: 'planned-date-night',
+        reminderType: 'dateNights',
+        label: 'Planned date night',
+        color: '#74b9ff',
+        emoji: '📅'
+      })
+    }
+
     return events
   }
 
@@ -448,14 +466,29 @@ function CalendarView() {
       ? eventDate.toISOString() 
       : currentLastDone.toISOString()
     
+    let updatedReminder = {
+      ...data.reminders[type],
+      lastDone: newLastDone,
+      events: [...existingEvents, dateStr].sort().reverse()
+    }
+
+    if (type === 'dateNights' && updatedReminder.plannedDate) {
+      const planned = new Date(`${updatedReminder.plannedDate}T00:00:00`)
+      planned.setHours(0, 0, 0, 0)
+      const eventDateObj = new Date(`${dateStr}T00:00:00`)
+      eventDateObj.setHours(0, 0, 0, 0)
+      if (eventDateObj >= planned) {
+        updatedReminder = {
+          ...updatedReminder,
+          plannedDate: null
+        }
+      }
+    }
+
     const newData = updateData({
       reminders: {
         ...data.reminders,
-        [type]: {
-          ...data.reminders[type],
-          lastDone: newLastDone,
-          events: [...existingEvents, dateStr].sort().reverse() // Sort descending (newest first)
-        }
+        [type]: updatedReminder
       }
     })
     setData(newData)
@@ -496,6 +529,39 @@ function CalendarView() {
     })
     setData(newData)
     // Force save to ensure file is updated
+    saveData(newData)
+  }
+
+  const handlePlanDateNight = (date) => {
+    const dateStr = format(date, 'yyyy-MM-dd')
+    const reminder = data.reminders.dateNights
+    if (!reminder) return
+    const newData = updateData({
+      reminders: {
+        ...data.reminders,
+        dateNights: {
+          ...reminder,
+          plannedDate: dateStr
+        }
+      }
+    })
+    setData(newData)
+    saveData(newData)
+  }
+
+  const handleClearPlannedDateNight = () => {
+    const reminder = data.reminders.dateNights
+    if (!reminder || !reminder.plannedDate) return
+    const newData = updateData({
+      reminders: {
+        ...data.reminders,
+        dateNights: {
+          ...reminder,
+          plannedDate: null
+        }
+      }
+    })
+    setData(newData)
     saveData(newData)
   }
 
@@ -683,16 +749,15 @@ function CalendarView() {
                         <div className="menu-divider"></div>
                         <div className="menu-section">
                           <div className="menu-section-title">Reminders</div>
-                          <div className="reminders-grid">
+                          <div className="reminders-row">
                             {[
-                              { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'No flowers' },
-                              { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'No surprises' },
-                              { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'No date night' },
-                              { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'No love showed :(' },
+                              { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'Remove flowers' },
+                              { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'Remove surprise' },
+                              { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'Remove love' },
+                              { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'Remove date night' },
                             ].map(({ type, emoji, addLabel, removeLabel }) => {
                               const dateEvents = getReminderEventsForDate(day)
                               const hasEvent = dateEvents.some(e => e.type === type)
-                              
                               return (
                                 <button
                                   key={type}
@@ -702,7 +767,6 @@ function CalendarView() {
                                     } else {
                                       handleAddReminderEvent(day, type)
                                     }
-                                    // Don't close menu - keep it open
                                   }}
                                   className={`reminder-icon-btn ${hasEvent ? 'remove' : 'add'}`}
                                   title={hasEvent ? removeLabel : addLabel}
@@ -711,6 +775,27 @@ function CalendarView() {
                                 </button>
                               )
                             })}
+                            <div className="reminder-plan-divider"></div>
+                            {(() => {
+                              const dayStr = format(day, 'yyyy-MM-dd')
+                              const plannedDateNight = data.reminders?.dateNights?.plannedDate
+                              const isPlannedForDay = plannedDateNight === dayStr
+                              return (
+                                <button
+                                  className={`reminder-icon-btn plan ${isPlannedForDay ? 'remove' : 'add'}`}
+                                  onClick={() => {
+                                    if (isPlannedForDay) {
+                                      handleClearPlannedDateNight()
+                                    } else {
+                                      handlePlanDateNight(day)
+                                    }
+                                  }}
+                                  title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
+                                >
+                                  💑
+                                </button>
+                              )
+                            })()}
                           </div>
                         </div>
                         <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">
