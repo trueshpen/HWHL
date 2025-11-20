@@ -20,6 +20,8 @@ HWHL/
 │   │   ├── NotesView.css
 │   │   ├── PasswordProtection.jsx
 │   │   ├── PasswordProtection.css
+│   │   ├── PersonalizationView.jsx
+│   │   ├── PersonalizationView.css
 │   │   ├── Reminders.jsx
 │   │   ├── Reminders.css
 │   │   ├── TodayReminders.jsx
@@ -38,11 +40,19 @@ HWHL/
 │   └── index.js           # Express server with API endpoints
 ├── data/                   # Data storage directory
 │   └── wife-happiness-data.json  # Persistent data file
+├── cert/                   # SSL certificates directory
+│   ├── local-key.pem       # Private key for HTTPS
+│   └── local-cert.pem      # Certificate for HTTPS
 ├── dist/                   # Production build output
 ├── public/                 # Static assets
-└── scripts/                # Utility scripts
-    ├── start-server.bat    # Start development server
-    └── test-server.bat     # Test server script
+│   └── icons/              # App icons for notifications
+│       ├── icon-192.png
+│       └── icon-512.png
+├── scripts/                # Utility scripts
+│   ├── start-server.bat    # Start development server
+│   ├── test-server.bat     # Test server script
+│   └── generate-cert.mjs   # Generate SSL certificates
+└── vite.config.js          # Vite configuration
 ```
 
 ## Frontend Architecture
@@ -57,6 +67,10 @@ App
 │   ├── ImportantDates
 │   ├── Reminders
 │   └── TodayReminders
+├── PersonalizationView
+│   ├── Reminders
+│   ├── CycleTracker
+│   └── ImportantDates
 └── NotesView
 ```
 
@@ -64,22 +78,28 @@ App
 
 #### App.jsx
 - **Purpose**: Main application component with view routing
-- **State**: Manages current view (calendar/notes), application data, authentication state, backup status, and notification status
+- **State**: Manages current view (calendar/personalization/notes), application data, authentication state, backup status, notification status, and settings menu visibility
 - **Features**: 
   - Password protection (PasswordProtection component)
-  - View switching between Calendar and Notes
-  - Navigation header with notification permission button
+  - View switching between Calendar, Personalization, and Notes
+  - Desktop navigation (Calendar, Notes)
+  - Mobile bottom navigation (Calendar, Personalization, Notes)
+  - Settings dropdown menu with export/import, notifications, and logout
   - Data synchronization with server
   - Daily notification scheduling
   - Test notification functionality
   - Data export/import functionality
   - Logout functionality
   - Status messages for backup and notifications
+  - Click outside handler for settings menu
 - **Key Functions**:
+  - `renderContent()` - Render appropriate view based on currentView state
+  - `onUpdateData()` - Update application data state
   - `handleTestNotification()` - Test and enable browser notifications
   - `handleLogout()` - Log out and reset authentication
   - `handleExportData()` - Export data to JSON file
   - `handleImportData()` - Import data from JSON file
+  - `handleImportClick()` - Trigger file input for import
 
 #### PasswordProtection.jsx
 - **Purpose**: Password protection screen for app access
@@ -94,24 +114,34 @@ App
 
 #### CalendarView.jsx
 - **Purpose**: Main calendar interface with event management
+- **Props**: `data`, `onUpdate`
 - **State**: 
   - Current month view
-  - Application data
   - Event menu visibility
+  - Expanded sections state (cycle, importantDates, reminders)
 - **Features**:
   - Monthly calendar grid showing full weeks (includes days from previous/next month)
   - Cycle period visualization
-  - Event management (periods, reminders, important dates)
+  - Event management (periods, reminders, important dates, planned date nights)
   - Click handlers for day interactions
-  - Event menu for adding/removing events
-  - Uses `useRef` for menu positioning
+  - Event menu for adding/removing events with smart positioning
+  - Planned date night functionality
+  - Sidebar expand/collapse tracking
+  - Dynamic menu positioning based on viewport
 - **Key Functions**:
   - `getEventsForDate()` - Get all events for a specific date
   - `handleAddPeriodStart/End()` - Manage cycle periods
   - `handleAddReminderEvent()` - Add reminder events
+  - `handleRemoveReminderEvent()` - Remove reminder events
+  - `handlePlanDateNight()` - Plan date night for specific date
+  - `handleClearPlannedDateNight()` - Clear planned date night
+  - `isPlannedPeriodStartDay()` - Check if date is planned period start
   - `updateCycleData()` - Recalculate cycle statistics
   - `isPeriodStart/End()` - Check if date is period start/end
   - `handleSectionExpand()` - Track expand/collapse state of sidebar sections
+  - `adjustMenuPosition()` - Dynamically position event menu based on viewport
+- **Constants**:
+  - `REMINDER_SEGMENT_TYPES` - Array of reminder types for calendar segments
 
 #### CycleTracker.jsx
 - **Purpose**: Display and manage cycle information
@@ -147,21 +177,31 @@ App
 #### Reminders.jsx
 - **Purpose**: Manage reminder system (flowers, surprises, date nights, general)
 - **Props**: `data`, `onUpdate`, `onExpandChange` (optional callback for expand/collapse state)
+- **State**: Editing state, notes editing, planning state, planned date input, expanded state
 - **Features**:
   - Enable/disable reminders
   - Customizable frequency
-  - Status tracking (due, pending, ok)
+  - Status tracking (due, pending, ok, planned, planned-today, planned-overdue)
   - Event history tracking
   - Notes for reminders (likes/dislikes, love notes)
   - Expand/collapse functionality with state tracking
+  - **Planned date night functionality** (for dateNights type):
+    - Plan specific date nights in advance
+    - Date input for planning
+    - Clear planned dates
+    - Automatic clearing when date night is completed
 - **Key Functions**:
-  - `getStatus()` - Calculate reminder status
-  - `handleMarkDone()` - Mark reminder as completed
-  - `getDaysUntilNext()` - Calculate days until next due date
+  - `getStatus()` - Calculate reminder status (includes planned date logic)
+  - `handleMarkDone()` - Mark reminder as completed (clears planned date if applicable)
+  - `handlePlanDateNight()` - Set planned date for date night
+  - `handleClearPlannedDate()` - Clear planned date
+  - `handleStartPlanning()` - Initialize planning mode
+  - `handleCancelPlanning()` - Cancel planning mode
   - `handleExpandChange()` - Handle expand/collapse state changes
 
 #### NotesView.jsx
 - **Purpose**: Manage likes, dislikes, and wishlist
+- **Props**: `data`, `onUpdate`
 - **State**: Application data
 - **Features**:
   - Likes list (things she loves)
@@ -170,6 +210,16 @@ App
 - **Key Functions**:
   - `handleAddLike/Dislike()` - Add items to lists
   - `handleToggleWishlistItem()` - Mark wishlist items as done
+
+#### PersonalizationView.jsx
+- **Purpose**: Combined view for personalization settings (reminders, cycle, important dates)
+- **Props**: `data`, `onUpdate`
+- **Features**:
+  - Displays Reminders component
+  - Displays CycleTracker component
+  - Displays ImportantDates component
+  - Provides unified interface for personalization settings
+- **Use Case**: Used in mobile navigation as a dedicated personalization view
 
 #### TodayReminders.jsx
 - **Purpose**: Display today's reminders and important dates in a summary view
@@ -189,19 +239,25 @@ App
 
 #### storage.js
 - **Purpose**: Data persistence and synchronization
+- **Constants**:
+  - `STORAGE_KEY` - localStorage key for app data (`'wife-happiness-app-data'`)
+  - `API_BASE_URL` - Server API base URL (`'https://localhost:3000/api'`)
 - **Key Functions**:
   - `loadData()` - Async load from server (primary) or localStorage (fallback)
   - `loadDataSync()` - Synchronous load from localStorage
   - `saveData()` - Save to localStorage and sync to server
   - `updateData()` - Update specific data fields
-  - `calculateAverageCycleLength()` - Calculate cycle statistics
-  - `calculateNextExpectedStart()` - Predict next period start
-  - `applyMigrations()` - Migrate old data formats
+  - `calculateAverageCycleLength()` - Calculate cycle statistics from periods
+  - `calculateNextExpectedStart()` - Predict next period start date
+  - `applyMigrations()` - Migrate old data formats to current structure
+  - `migrateReminderData()` - Migrate old reminder format to include events and notes
+  - `migrateCycleData()` - Migrate old cycle format to periods array
+  - `syncToServer()` - Background sync to server (debounced 500ms)
 - **Data Flow**:
-  1. Load from server API (primary)
+  1. Load from server API (primary) - HTTPS endpoint
   2. Fallback to localStorage if server unavailable
   3. Save to localStorage immediately
-  4. Sync to server in background (debounced)
+  4. Sync to server in background (debounced 500ms)
 
 #### cycleUtils.js
 - **Purpose**: Cycle-related calculations
@@ -211,8 +267,12 @@ App
   - `isInFuturePeriod()` - Check if date is in expected future period
 
 #### notifications.js
-- **Purpose**: Browser notification system
+- **Purpose**: Browser notification system with service worker support
+- **Constants**:
+  - `NOTIFICATION_ICON` - Path to notification icon (`/icons/icon-192.png`)
+  - `NOTIFICATION_BADGE` - Path to notification badge (`/icons/icon-192.png`)
 - **Key Functions**:
+  - `displayNotification()` - Display notification via service worker or fallback to window.Notification
   - `requestNotificationPermission()` - Request browser notification permission
   - `showTestNotification()` - Show test notification
   - `checkAndShowNotifications()` - Check for notifications and show if needed
@@ -223,6 +283,8 @@ App
   - Checks for due reminders, important dates, and cycle alerts
   - Shows browser notification if any notifications exist
   - Prevents duplicate notifications (once per day)
+  - Service worker support with fallback to window.Notification
+  - Notification payload with icon, badge, vibrate, and data
 
 #### reminderUtils.js
 - **Purpose**: Reminder-related utility functions and constants
@@ -251,7 +313,6 @@ App
   - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days, 5 days total including start and end)
   - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (9 days)
   - `MAX_CYCLE_LENGTH_DAYS` - Maximum valid cycle length for validation (50 days)
-  - `getPhaseFromCycleDay()` - Get phase from cycle day (1-28)
   - `getPhaseFromCycleDayWithLength()` - Phase calculation function with custom cycle length
 
 ## Backend Architecture
@@ -322,9 +383,22 @@ App
       events: ['YYYY-MM-DD'],
       notes: [{ type: 'like'|'dislike', text: string, id: string }]
     },
-    surprises: { ... },
-    dateNights: { ... },
-    general: { ... }
+    surprises: { enabled: boolean, frequency: number, lastDone: 'ISO string', events: ['YYYY-MM-DD'] },
+    dateNights: { 
+      enabled: boolean, 
+      frequency: number, 
+      lastDone: 'ISO string', 
+      events: ['YYYY-MM-DD'], 
+      notes: [{ type: 'note', text: string, id: string }],
+      plannedDate: 'YYYY-MM-DD' | null  // Planned date for future date night
+    },
+    general: { 
+      enabled: boolean, 
+      frequency: number, 
+      lastDone: 'ISO string', 
+      events: ['YYYY-MM-DD'], 
+      notes: [{ type: 'love', text: string, id: string }] 
+    }
   },
   preferredGifts: []
 }
@@ -357,23 +431,42 @@ App
 - **Frontend**:
   - React 18
   - Vite (build tool)
+  - VitePWA plugin (Progressive Web App support)
   - date-fns (date manipulation)
   
 - **Backend**:
   - Node.js
   - Express.js
+  - HTTPS with self-signed certificates
   - CORS middleware
 
 - **Storage**:
   - localStorage (browser)
   - JSON file (server)
+  - sessionStorage (authentication)
+
+## Configuration Files
+
+### vite.config.js
+- **Purpose**: Vite build configuration
+- **Features**:
+  - React plugin configuration
+  - PWA plugin with manifest
+  - GitHub Pages deployment support (base path configuration)
+  - Server configuration (localhost:5173)
+  - App icons configuration (192x192, 512x512)
+  - Theme colors and display mode
+  - Auto-update service worker registration
 
 ## Development Workflow
 
-1. Start server: `npm run server` or `scripts/start-server.bat`
-2. Start frontend: `npm run dev`
-3. Access app: `http://localhost:5173`
-4. API available at: `http://localhost:3000/api`
+1. Generate SSL certificates (first time only): `npm run generate-cert`
+2. Start server: `npm run server` or `scripts/start-server.bat`
+3. Start frontend: `npm run dev`
+4. Access app: `http://localhost:5173`
+5. API available at: `https://localhost:3000/api` (HTTPS)
+
+**Note**: The server requires SSL certificates. If certificates are missing, run `npm run generate-cert` first. The server will exit with an error message if certificates are not found.
 
 ## Build Process
 

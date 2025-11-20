@@ -33,6 +33,8 @@ function CalendarView({ data, onUpdate }) {
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
   
   // Get the calendar view start (Monday of the week containing month start)
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
@@ -547,6 +549,11 @@ function CalendarView({ data, onUpdate }) {
 
   const handlePlanDateNight = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
+    const normalizedDate = new Date(date)
+    normalizedDate.setHours(0, 0, 0, 0)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (normalizedDate < today) return
     const reminder = data.reminders.dateNights
     if (!reminder) return
     const newData = updateData({
@@ -583,22 +590,28 @@ function CalendarView({ data, onUpdate }) {
       </div>
       <div className="calendar-container">
         <div className="calendar-header">
-          <button onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-            ←
-          </button>
-          <h2>{format(currentDate, 'MMMM yyyy')}</h2>
-          {!isSameDay(startOfMonth(currentDate), startOfMonth(new Date())) && (
-            <button 
-              className="go-to-today-btn"
-              onClick={() => setCurrentDate(new Date())}
-              title="Go to current month"
-            >
-              Today
+          <div className="calendar-header-left">
+            <button onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
+              ←
             </button>
-          )}
-          <button onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-            →
-          </button>
+          </div>
+          <div className="calendar-title-wrapper">
+            <h2 className="calendar-title">{format(currentDate, 'MMMM yyyy')}</h2>
+            {!isSameDay(startOfMonth(currentDate), startOfMonth(new Date())) && (
+              <button 
+                className="current-month-link"
+                onClick={() => setCurrentDate(new Date())}
+                title="Go to current month"
+              >
+                Current month
+              </button>
+            )}
+          </div>
+          <div className="calendar-header-right">
+            <button onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
+              →
+            </button>
+          </div>
         </div>
 
         <div className="calendar-grid">
@@ -624,6 +637,10 @@ function CalendarView({ data, onUpdate }) {
                 return acc
               }, {})
               const isPlannedForDay = data.reminders?.dateNights?.plannedDate === dayStr
+              const dayStart = new Date(day)
+              dayStart.setHours(0, 0, 0, 0)
+              const isPastDay = dayStart < todayStart
+              const showPlanButton = !isPastDay || isPlannedForDay
               
               return (
                 <div
@@ -809,20 +826,24 @@ function CalendarView({ data, onUpdate }) {
                                 </button>
                               )
                             })}
-                            <div className="reminder-plan-divider"></div>
-                            <button
-                              className={`reminder-icon-btn plan-icon ${isPlannedForDay ? 'active' : ''}`}
-                              onClick={() => {
-                                if (isPlannedForDay) {
-                                  handleClearPlannedDateNight()
-                                } else {
-                                  handlePlanDateNight(day)
-                                }
-                              }}
-                              title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
-                            >
-                              💑
-                            </button>
+                            {showPlanButton && (
+                              <>
+                                <div className="reminder-plan-divider"></div>
+                              <button
+                                className={`reminder-icon-btn plan-icon ${isPlannedForDay ? 'active' : ''}`}
+                                onClick={() => {
+                                  if (isPlannedForDay) {
+                                    handleClearPlannedDateNight()
+                                  } else {
+                                    handlePlanDateNight(day)
+                                  }
+                                }}
+                                title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
+                              >
+                                💑
+                              </button>
+                              </>
+                            )}
                           </div>
                         </div>
                         <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">

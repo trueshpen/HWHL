@@ -315,6 +315,21 @@
   pointer-events: none;
 }
 
+.reminder-indicator.active {
+  display: grid;
+}
+
+/* Desktop: hide reminder indicator, show only event dots */
+@media (min-width: 769px) {
+  .reminder-indicator {
+    display: none !important;
+  }
+  
+  .reminder-indicator.active {
+    display: none !important;
+  }
+}
+
 .reminder-segment {
   width: 8px;
   height: 8px;

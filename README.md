@@ -179,6 +179,7 @@ For detailed documentation, see:
 - **[API.md](API.md)** - Backend API documentation
 - **[FEATURES.md](FEATURES.md)** - Detailed feature documentation
 - **[QUICK-START.md](QUICK-START.md)** - Quick start guide and troubleshooting
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - GitHub Pages deployment guide
 
 ## Development
 

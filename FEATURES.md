@@ -147,7 +147,13 @@ Track and manage regular reminders with customizable frequencies.
 - Regular date night reminders
 - Default frequency: Every 7 days
 - Notes: Track date ideas and preferences
-- Status tracking: Due, pending, ok
+- Status tracking: Due, pending, ok, planned
+- **Planned Date Feature**: Plan specific date nights in advance
+  - Set planned date for future date nights
+  - Planned dates appear on calendar
+  - Status shows "Planned in X days" or "Date night today!"
+  - Planned date automatically clears when date night is marked as done
+  - Can plan date nights from calendar day menu or reminders component
 
 **💕 Show Love (General)**
 - Daily reminders to show love

@@ -13,6 +13,7 @@
   --bg-card: #ffffff;
   --text: #2d3436;
   --text-light: #636e72;
+  --text-secondary: #95a5a6;
   --border: #ffe0e6;
   --success: #00b894;
   --warning: #fdcb6e;
@@ -45,5 +46,41 @@ button {
 input, textarea {
   font-family: inherit;
   outline: none;
+}
+
+/* Global button classes */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 2px solid var(--border);
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  border-color: var(--primary);
 }
 
