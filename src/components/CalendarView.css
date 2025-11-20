@@ -57,10 +57,57 @@
 }
 
 .calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: flex-start;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
+}
+
+.calendar-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.calendar-title-wrapper {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.calendar-title {
+  text-align: center;
+  margin: 0;
+}
+
+.current-month-link {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.current-month-link:hover {
+  background: var(--accent);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.calendar-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
 }
 
 .calendar-header h2 {
@@ -70,7 +117,8 @@
   font-weight: 700;
 }
 
-.calendar-header button {
+.calendar-header-left button,
+.calendar-header-right button {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
@@ -85,19 +133,14 @@
   transition: all 0.2s;
 }
 
-.calendar-header button:hover {
+.calendar-header-left button:hover,
+.calendar-header-right button:hover {
   background: var(--accent);
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.calendar-header .go-to-today-btn {
-  width: auto;
-  padding: 0 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
+/* removed go-to-today-btn styles */
 
 .calendar-grid {
   display: flex;
@@ -127,7 +170,7 @@
 }
 
 .calendar-days.six-weeks {
-  /* Optional adjustment for 6 weeks */
+  grid-auto-rows: minmax(90px, 1fr);
 }
 
 .calendar-day {
@@ -150,8 +193,19 @@
 }
 
 .calendar-day.other-month {
-  opacity: 0.5;
   background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-light);
+}
+
+.calendar-day.other-month .day-number {
+  color: var(--text-light);
+}
+
+.calendar-day.other-month .cycle-day-info,
+.calendar-day.other-month .cycle-day-number,
+.calendar-day.other-month .cycle-phase-icon {
+  opacity: 0.6;
 }
 
 .calendar-day.today {
@@ -207,7 +261,8 @@
 
 .calendar-day.period-start .day-number,
 .calendar-day.period-end .day-number {
-  /* Ensure text is visible */
+  color: var(--text);
+  font-weight: 700;
 }
 
 .day-number {
@@ -567,6 +622,14 @@
   filter: none;
   background: var(--bg-card);
   box-shadow: 0 2px 8px var(--shadow);
+}
+
+.reminder-icon-btn:disabled,
+.reminder-icon-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
 }
 
 .reminder-icon-btn.remove {
