@@ -174,15 +174,35 @@
 .calendar-day.period-future {
   background-color: rgba(255, 107, 107, 0.08);
   border-style: dashed;
+  position: relative;
+}
+
+.calendar-day.period-future::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 107, 107, 0.2) 0px,
+    rgba(255, 107, 107, 0.2) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .calendar-day.period-start {
-  background: linear-gradient(135deg, var(--period) 0%, rgba(255, 107, 107, 0.15) 50%);
-  color: white;
+  background-color: rgba(255, 107, 107, 0.15);
+  border-left: 4px solid var(--period, #ff6b81);
+  color: var(--text);
 }
 
 .calendar-day.period-end {
-  background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 50%, var(--period) 100%);
+  background-color: rgba(255, 107, 107, 0.15);
+  border-right: 4px solid var(--period, #ff6b81);
+  color: var(--text);
 }
 
 .calendar-day.period-start .day-number,
@@ -493,6 +513,14 @@
 .cycle-btn:hover {
   background: var(--accent);
   border-color: var(--primary);
+}
+
+.cycle-btn.active {
+  background: rgba(255, 107, 157, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(255, 107, 157, 0.2);
 }
 
 .cycle-btn.remove {

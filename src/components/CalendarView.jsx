@@ -62,6 +62,27 @@ function CalendarView({ data, onUpdate }) {
     return data.cycle.periods?.some(p => p.endDate === dateStr) || false
   }
 
+  const isPlannedPeriodStartDay = (date) => {
+    const { expectedNextStart, cycleLength } = data.cycle || {}
+    if (!expectedNextStart || !cycleLength || cycleLength <= 0) return false
+
+    const checkDate = new Date(date)
+    checkDate.setHours(0, 0, 0, 0)
+
+    let currentStart = new Date(expectedNextStart)
+    currentStart.setHours(0, 0, 0, 0)
+    const limitDate = addDays(currentStart, 365)
+
+    while (currentStart <= limitDate) {
+      if (isSameDay(checkDate, currentStart)) {
+        return true
+      }
+      currentStart = addDays(currentStart, cycleLength)
+    }
+
+    return false
+  }
+
   const getEventsForDate = (date) => {
     const events = []
     const dateStr = format(date, 'yyyy-MM-dd')
@@ -104,6 +125,14 @@ function CalendarView({ data, onUpdate }) {
     const events = []
     const dateStr = format(date, 'yyyy-MM-dd')
     
+    if (isPlannedPeriodStartDay(date)) {
+      events.push({
+        type: 'planned-period-start',
+        label: 'Planned period start',
+        emoji: '🩸'
+      })
+    }
+
     // Add 8 days alert (period notification)
     if (data.cycle.expectedNextStart) {
       const nextStart = new Date(data.cycle.expectedNextStart)
@@ -740,10 +769,10 @@ function CalendarView({ data, onUpdate }) {
                         <div className="menu-section">
                           <div className="menu-section-title">Cycle</div>
                           <div className="cycle-buttons">
-                            <button onClick={() => handleAddPeriodStart(day)} className="cycle-btn" title="Mark as Start">
+                          <button onClick={() => handleAddPeriodStart(day)} className={`cycle-btn ${periodStart ? 'active' : ''}`} title="Mark as Start">
                               Start
                             </button>
-                            <button onClick={() => handleAddPeriodEnd(day)} className="cycle-btn" title="Mark as End">
+                          <button onClick={() => handleAddPeriodEnd(day)} className={`cycle-btn ${periodEnd ? 'active' : ''}`} title="Mark as End">
                               End
                             </button>
                             <button onClick={() => handleRemovePeriod(day)} className="cycle-btn remove" title="Remove Period">
