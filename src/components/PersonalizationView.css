@@ -1,0 +1,13 @@
+.personalization-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 80px; /* Space for bottom nav */
+}
+
+@media (min-width: 768px) {
+  .personalization-view {
+    display: none; /* Should not be visible on desktop usually, or handled by App component */
+  }
+}
+

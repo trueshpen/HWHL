@@ -1,18 +1,8 @@
-import { useState, useEffect } from 'react'
-import { loadData, loadDataSync, updateData } from '../utils/storage'
+import { useState } from 'react'
+import { updateData } from '../utils/storage'
 import './NotesView.css'
 
-function NotesView() {
-  const [data, setData] = useState(loadDataSync())
-
-  // Load data from server on mount (syncs with PC file)
-  useEffect(() => {
-    const syncData = async () => {
-      const serverData = await loadData()
-      setData(serverData)
-    }
-    syncData()
-  }, [])
+function NotesView({ data, onUpdate }) {
   const [editingLikes, setEditingLikes] = useState(false)
   const [editingDislikes, setEditingDislikes] = useState(false)
   const [newLike, setNewLike] = useState('')
@@ -24,7 +14,7 @@ function NotesView() {
       const newData = updateData({
         likes: [...data.likes, { id: Date.now(), text: newLike.trim() }]
       })
-      setData(newData)
+      onUpdate(newData)
       setNewLike('')
     }
   }
@@ -34,7 +24,7 @@ function NotesView() {
       const newData = updateData({
         dislikes: [...data.dislikes, { id: Date.now(), text: newDislike.trim() }]
       })
-      setData(newData)
+      onUpdate(newData)
       setNewDislike('')
     }
   }
@@ -44,7 +34,7 @@ function NotesView() {
       const newData = updateData({
         wishlist: [...data.wishlist, { id: Date.now(), text: newWishlistItem.trim(), done: false }]
       })
-      setData(newData)
+      onUpdate(newData)
       setNewWishlistItem('')
     }
   }
@@ -53,21 +43,21 @@ function NotesView() {
     const newData = updateData({
       likes: data.likes.filter(l => l.id !== id)
     })
-    setData(newData)
+    onUpdate(newData)
   }
 
   const handleDeleteDislike = (id) => {
     const newData = updateData({
       dislikes: data.dislikes.filter(d => d.id !== id)
     })
-    setData(newData)
+    onUpdate(newData)
   }
 
   const handleDeleteWishlistItem = (id) => {
     const newData = updateData({
       wishlist: data.wishlist.filter(w => w.id !== id)
     })
-    setData(newData)
+    onUpdate(newData)
   }
 
   const handleToggleWishlistItem = (id) => {
@@ -76,7 +66,7 @@ function NotesView() {
         w.id === id ? { ...w, done: !w.done } : w
       )
     })
-    setData(newData)
+    onUpdate(newData)
   }
 
   return (
@@ -217,4 +207,3 @@ function NotesView() {
 }
 
 export default NotesView
-

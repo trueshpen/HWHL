@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import CalendarView from './components/CalendarView'
 import NotesView from './components/NotesView'
+import PersonalizationView from './components/PersonalizationView'
 import PasswordProtection from './components/PasswordProtection'
 import { loadDataSync, loadData, saveData } from './utils/storage'
 import { scheduleDailyNotifications, showTestNotification } from './utils/notifications'
@@ -13,7 +14,9 @@ function App() {
   const [data, setData] = useState(loadDataSync())
   const [backupStatus, setBackupStatus] = useState(null)
   const [notificationStatus, setNotificationStatus] = useState(null)
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const fileInputRef = useRef(null)
+  const settingsMenuRef = useRef(null)
 
   // Load data from server on mount
   useEffect(() => {
@@ -34,6 +37,22 @@ function App() {
     return cleanup
   }, [data])
 
+  // Close settings menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target)) {
+        setShowSettingsMenu(false)
+      }
+    }
+
+    if (showSettingsMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showSettingsMenu])
+
   const handleTestNotification = async () => {
     const ok = await showTestNotification()
     if (ok) {
@@ -41,12 +60,14 @@ function App() {
     } else {
       setNotificationStatus({ type: 'error', message: 'Notifications are blocked for this browser.' })
     }
+    setShowSettingsMenu(false)
   }
 
   const handleLogout = () => {
     sessionStorage.removeItem('app_authenticated')
     setIsAuthenticated(false)
     setAuthKey(prev => prev + 1) // Force PasswordProtection to remount
+    setShowSettingsMenu(false)
   }
 
   useEffect(() => {
@@ -79,6 +100,7 @@ function App() {
       console.error('Export error:', error)
       setBackupStatus({ type: 'error', message: 'Failed to export data.' })
     }
+    setShowSettingsMenu(false)
   }
 
   const handleImportClick = () => {
@@ -102,9 +124,27 @@ function App() {
         setBackupStatus({ type: 'error', message: 'Invalid backup file.' })
       } finally {
         event.target.value = ''
+        setShowSettingsMenu(false)
       }
     }
     reader.readAsText(file)
+  }
+
+  const onUpdateData = (newData) => {
+    setData(newData)
+  }
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'calendar':
+        return <CalendarView data={data} onUpdate={onUpdateData} />
+      case 'personalization':
+        return <PersonalizationView data={data} onUpdate={onUpdateData} />
+      case 'notes':
+        return <NotesView data={data} onUpdate={onUpdateData} />
+      default:
+        return <CalendarView data={data} onUpdate={onUpdateData} />
+    }
   }
 
   return (
@@ -117,7 +157,9 @@ function App() {
         <div className="app">
           <header className="app-header">
             <h1>💕 Wife Happiness App</h1>
-            <nav className="view-switcher">
+            
+            {/* Desktop Navigation */}
+            <nav className="view-switcher desktop-only">
               <button
                 className={currentView === 'calendar' ? 'active' : ''}
                 onClick={() => setCurrentView('calendar')}
@@ -131,45 +173,44 @@ function App() {
                 📝 Notes
               </button>
             </nav>
-            <div className="header-actions">
-              <div className="backup-buttons">
-                <button
-                  className="backup-btn"
-                  onClick={handleExportData}
-                  title="Download your data as backup file"
-                >
-                  Export data
-                </button>
-                <button
-                  className="backup-btn file-access-btn"
-                  onClick={handleImportClick}
-                  title="Import data from backup file"
-                >
-                  Import data
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/json"
-                  className="hidden-file-input"
-                  onChange={handleImportData}
-                />
-              </div>
-              <button
-                className="allow-notifications-btn"
-                onClick={handleTestNotification}
-                title="Allow notifications"
+
+            {/* Settings Icon (Desktop & Mobile) */}
+            <div className="settings-container" ref={settingsMenuRef}>
+              <button 
+                className="settings-icon-btn"
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                title="Settings"
               >
-                Allow notifications
+                ⚙️
               </button>
-              <button
-                className="logout-btn"
-                onClick={handleLogout}
-                title="Log out"
-              >
-                Log Out
-              </button>
+              
+              {showSettingsMenu && (
+                <div className="settings-dropdown">
+                   <button onClick={handleExportData}>
+                    📥 Export data
+                  </button>
+                  <button onClick={handleImportClick}>
+                    📤 Import data
+                  </button>
+                  <button onClick={handleTestNotification}>
+                    🔔 Allow notifications
+                  </button>
+                  <div className="dropdown-divider"></div>
+                  <button onClick={handleLogout} className="logout-option">
+                    🚪 Log Out
+                  </button>
+                </div>
+              )}
+              {/* Re-use the file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden-file-input"
+                onChange={handleImportData}
+              />
             </div>
+
             {(backupStatus || notificationStatus) && (
               <div className="status-stack">
                 {backupStatus && (
@@ -187,8 +228,33 @@ function App() {
           </header>
 
           <main className="app-main">
-            {currentView === 'calendar' ? <CalendarView /> : <NotesView />}
+            {renderContent()}
           </main>
+
+          {/* Mobile Bottom Navigation */}
+          <nav className="bottom-nav mobile-only">
+            <button
+              className={`nav-item ${currentView === 'calendar' ? 'active' : ''}`}
+              onClick={() => setCurrentView('calendar')}
+            >
+              <span className="nav-icon">📅</span>
+              <span className="nav-label">Calendar</span>
+            </button>
+            <button
+              className={`nav-item ${currentView === 'personalization' ? 'active' : ''}`}
+              onClick={() => setCurrentView('personalization')}
+            >
+              <span className="nav-icon">⚙️</span>
+              <span className="nav-label">Personalization</span>
+            </button>
+            <button
+              className={`nav-item ${currentView === 'notes' ? 'active' : ''}`}
+              onClick={() => setCurrentView('notes')}
+            >
+              <span className="nav-icon">📝</span>
+              <span className="nav-label">Notes</span>
+            </button>
+          </nav>
         </div>
       )}
     </>
@@ -196,4 +262,3 @@ function App() {
 }
 
 export default App
-

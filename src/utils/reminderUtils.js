@@ -119,7 +119,10 @@ export const getStatus = (reminder, type) => {
 
   if (daysSince >= reminder.frequency) {
     const daysOverdue = daysSince - reminder.frequency
-    return { status: 'due', message: `Due (${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago)`, isDoneToday, isDueToday, daysSince, daysUntil }
+    const message = daysOverdue === 0
+      ? 'Due today'
+      : `Due (${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago)`
+    return { status: 'due', message, isDoneToday, isDueToday, daysSince, daysUntil }
   }
 
   return { status: 'ok', message: `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`, isDoneToday, isDueToday, daysSince, daysUntil }

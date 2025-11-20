@@ -2,6 +2,7 @@
   --layout-max-width: 1400px;
   --layout-padding-desktop: 2rem;
   --layout-padding-mobile: 1rem;
+  --bottom-nav-height: 60px;
 }
 
 .app {
@@ -22,6 +23,7 @@
   justify-content: space-between;
   gap: 1rem;
   min-height: 50px;
+  z-index: 100;
 }
 
 .app-header h1 {
@@ -38,41 +40,6 @@
   justify-content: center;
   align-items: center;
   flex: 1;
-}
-
-.backup-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.backup-btn {
-  padding: 0.5rem 1rem;
-  background: var(--bg);
-  color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.backup-btn:hover {
-  background: var(--accent);
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.backup-btn.file-access-btn {
-  background: var(--success);
-  color: white;
-  border-color: var(--success);
-}
-
-.backup-btn.file-access-btn:hover {
-  background: #00a085;
-  border-color: #00a085;
 }
 
 .view-switcher button {
@@ -98,20 +65,6 @@
   color: white;
   border-color: var(--primary);
   box-shadow: 0 4px 12px var(--shadow);
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.header-actions .backup-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
 }
 
 .hidden-file-input {
@@ -145,48 +98,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-}
-
-.allow-notifications-btn {
-  padding: 0.4rem 0.8rem;
-  background: var(--warning);
-  color: var(--text);
-  border: 1.5px solid var(--warning);
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.allow-notifications-btn:hover {
-  background: #f0b94a;
-  border-color: #f0b94a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(253, 203, 110, 0.3);
-}
-
-.logout-btn {
-  padding: 0.4rem 0.8rem;
-  background: var(--bg);
-  color: var(--text);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.logout-btn:hover {
-  background: var(--accent);
-  border-color: var(--primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow);
+  position: absolute;
+  top: 100%;
+  right: 1.5rem;
+  z-index: 1000;
 }
 
 .app-main {
@@ -200,70 +115,153 @@
   gap: 1.5rem;
 }
 
+/* Settings Menu */
+.settings-container {
+  position: relative;
+  margin-left: auto; /* Push to right */
+}
+
+.settings-icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+
+.settings-icon-btn:hover {
+  background: var(--bg);
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px var(--shadow);
+  min-width: 200px;
+  padding: 0.5rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-dropdown button {
+  background: none;
+  border: none;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-dropdown button:hover {
+  background: var(--bg);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem 0;
+}
+
+.logout-option {
+  color: #e74c3c !important;
+}
+
+/* Mobile Specific Styles */
+.mobile-only {
+  display: none !important;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 0.5rem;
+  height: var(--bottom-nav-height);
+  z-index: 100;
+  box-shadow: 0 -2px 10px var(--shadow);
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.25rem 1rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.3s;
+  flex: 1;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-icon {
+  font-size: 1.25rem;
+}
+
+.nav-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
 @media (min-width: 1200px) {
   .app-main {
     gap: 2rem;
   }
 }
 
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow);
-}
-
-.btn-secondary {
-  background: var(--bg);
-  color: var(--text);
-  border: 2px solid var(--border);
-}
-
-.btn-secondary:hover {
-  background: var(--bg-card);
-  border-color: var(--primary);
-}
-
 @media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  
+  .mobile-only {
+    display: flex !important;
+  }
+
   .app-header {
-    padding: 1rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: space-between;
   }
 
   .app-header h1 {
-    font-size: 1.25rem;
-  }
-
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .header-actions button,
-  .header-actions .backup-buttons button {
-    width: 100%;
-  }
-
-  .view-switcher {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .view-switcher button {
-    width: 100%;
+    font-size: 1.1rem;
   }
 
   .app-main {
     padding: var(--layout-padding-mobile);
+    padding-bottom: calc(var(--bottom-nav-height) + 1rem); /* Space for bottom nav */
     gap: 1rem;
   }
+  
+  .status-stack {
+    top: 60px;
+    right: 1rem;
+  }
 }
-

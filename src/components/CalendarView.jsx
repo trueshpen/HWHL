@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
-import { loadData, loadDataSync, saveData, updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
+import { updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import { reminderTypes } from '../utils/reminderUtils'
 import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
@@ -10,9 +10,10 @@ import Reminders from './Reminders'
 import TodayReminders from './TodayReminders'
 import './CalendarView.css'
 
-function CalendarView() {
+const REMINDER_SEGMENT_TYPES = ['flowers', 'surprises', 'general', 'dateNights']
+
+function CalendarView({ data, onUpdate }) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [data, setData] = useState(loadDataSync())
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
   const menuRef = useRef(null)
   const [expandedSections, setExpandedSections] = useState({
@@ -20,15 +21,6 @@ function CalendarView() {
     importantDates: false,
     reminders: false
   })
-
-  // Load data from server on mount (syncs with PC file)
-  useEffect(() => {
-    const syncData = async () => {
-      const serverData = await loadData()
-      setData(serverData)
-    }
-    syncData()
-  }, [])
 
   const handleSectionExpand = (section, expanded) => {
     setExpandedSections(prev => ({
@@ -216,7 +208,6 @@ function CalendarView() {
       const viewportHeight = window.innerHeight
       const viewportWidth = window.innerWidth
       
-      // Estimate menu height and width
       const menuHeight = menuRect.height || 400
       const menuWidth = menuRect.width || 300
       const spaceBelow = viewportHeight - dayRect.bottom
@@ -224,52 +215,49 @@ function CalendarView() {
       const spaceRight = viewportWidth - dayRect.right
       const spaceLeft = dayRect.left
       
-      // Check if menu fits below
-      const fitsBelow = spaceBelow >= menuHeight + 20
-      // Check if menu fits above
-      const fitsAbove = spaceAbove >= menuHeight + 20
-      
-      // Determine if day is on left or right side of calendar
-      // Find day index in calendarDays to determine column (0-6, where 0-2 = left, 4-6 = right)
       const dayIndex = calendarDays.findIndex(d => isSameDay(d, showEventMenu))
       const column = dayIndex % 7
       const isLeftSide = column <= 2
       const isRightSide = column >= 4
       
-      // Check if menu fits to the side
+      const fitsBelow = spaceBelow >= menuHeight + 20
+      const fitsAbove = spaceAbove >= menuHeight + 20
       const fitsRight = spaceRight >= menuWidth + 10
       const fitsLeft = spaceLeft >= menuWidth + 10
       
-      // Remove all position classes first
-      menuElement.classList.remove('open-upward', 'open-right', 'open-left')
+      menuElement.classList.remove('open-upward', 'open-right', 'open-left', 'mobile')
+      menuElement.style.left = ''
+      menuElement.style.right = ''
+      menuElement.style.top = ''
+      menuElement.style.transform = ''
+      menuElement.style.width = ''
+      menuElement.style.maxWidth = ''
+      menuElement.style.maxHeight = ''
+
+      if (viewportWidth <= 768) {
+        menuElement.classList.add('mobile')
+        return
+      }
       
-      // If menu doesn't fit vertically, try horizontal positioning
       if (!fitsBelow && !fitsAbove) {
         if (isLeftSide && fitsRight) {
-          // Day is on left, open to the right
           menuElement.classList.add('open-right')
         } else if (isRightSide && fitsLeft) {
-          // Day is on right, open to the left
           menuElement.classList.add('open-left')
         } else if (fitsAbove) {
-          // Fallback to upward if it fits
           const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
           if (estimatedTopWhenUpward >= 20) {
             menuElement.classList.add('open-upward')
           }
         }
       } else if (!fitsBelow && fitsAbove) {
-        // Check if menu top would be above viewport when opened upward
         const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
         if (estimatedTopWhenUpward >= 20) {
           menuElement.classList.add('open-upward')
         }
-      } else if (fitsBelow) {
-        // Menu fits below, keep default position
       }
     }
     
-    // Small delay to ensure menu is rendered
     setTimeout(adjustMenuPosition, 10)
   }, [showEventMenu, calendarDays])
 
@@ -313,7 +301,7 @@ function CalendarView() {
         expectedNextStart: nextExpected
       }
     })
-    setData(newData)
+    onUpdate(newData)
   }
 
   const handleAddPeriodStart = (date) => {
@@ -491,9 +479,7 @@ function CalendarView() {
         [type]: updatedReminder
       }
     })
-    setData(newData)
-    // Force save to ensure file is updated
-    saveData(newData)
+    onUpdate(newData)
   }
 
   const handleRemoveReminderEvent = (date, type) => {
@@ -527,9 +513,7 @@ function CalendarView() {
         }
       }
     })
-    setData(newData)
-    // Force save to ensure file is updated
-    saveData(newData)
+    onUpdate(newData)
   }
 
   const handlePlanDateNight = (date) => {
@@ -545,8 +529,7 @@ function CalendarView() {
         }
       }
     })
-    setData(newData)
-    saveData(newData)
+    onUpdate(newData)
   }
 
   const handleClearPlannedDateNight = () => {
@@ -561,12 +544,14 @@ function CalendarView() {
         }
       }
     })
-    setData(newData)
-    saveData(newData)
+    onUpdate(newData)
   }
 
   return (
     <div className="calendar-view">
+      <div className="mobile-today-section">
+         <TodayReminders data={data} onUpdate={onUpdate} />
+      </div>
       <div className="calendar-container">
         <div className="calendar-header">
           <button onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
@@ -604,6 +589,12 @@ function CalendarView() {
               const cycleDay = getCycleDayForDate(day)
               const periodStart = isPeriodStart(day)
               const periodEnd = isPeriodEnd(day)
+              const dayStr = format(day, 'yyyy-MM-dd')
+              const reminderSegmentState = REMINDER_SEGMENT_TYPES.reduce((acc, type) => {
+                acc[type] = events.some(event => event.type === type)
+                return acc
+              }, {})
+              const isPlannedForDay = data.reminders?.dateNights?.plannedDate === dayStr
               
               return (
                 <div
@@ -623,10 +614,10 @@ function CalendarView() {
                     const displayDay = normalizedDay
                     return (
                       <div className="cycle-day-info">
+                        <span className="cycle-day-number">{displayDay}</span>
                         {phase && (
                           <span className="cycle-phase-icon">{PHASES[phase].emoji}</span>
                         )}
-                        <span className="cycle-day-number">{displayDay}</span>
                       </div>
                     )
                   })()}
@@ -642,6 +633,20 @@ function CalendarView() {
                       </div>
                     ))}
                   </div>
+                  <div className={`reminder-indicator ${Object.values(reminderSegmentState).some(Boolean) ? 'active' : ''}`}>
+                    {REMINDER_SEGMENT_TYPES.map(type => (
+                      <span
+                        key={type}
+                        className={`reminder-segment ${type} ${reminderSegmentState[type] ? 'active' : ''}`}
+                        title={reminderSegmentState[type] ? reminderTypes[type].label : ''}
+                      />
+                    ))}
+                  </div>
+                  {isPlannedForDay && (
+                    <div className="planned-date-heart" title="Planned date night">
+                      ♡
+                    </div>
+                  )}
                   {/* Notification dot in right bottom corner */}
                   {(() => {
                     let hasNotification = false
@@ -776,26 +781,19 @@ function CalendarView() {
                               )
                             })}
                             <div className="reminder-plan-divider"></div>
-                            {(() => {
-                              const dayStr = format(day, 'yyyy-MM-dd')
-                              const plannedDateNight = data.reminders?.dateNights?.plannedDate
-                              const isPlannedForDay = plannedDateNight === dayStr
-                              return (
-                                <button
-                                  className={`reminder-icon-btn plan ${isPlannedForDay ? 'remove' : 'add'}`}
-                                  onClick={() => {
-                                    if (isPlannedForDay) {
-                                      handleClearPlannedDateNight()
-                                    } else {
-                                      handlePlanDateNight(day)
-                                    }
-                                  }}
-                                  title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
-                                >
-                                  💑
-                                </button>
-                              )
-                            })()}
+                            <button
+                              className={`reminder-icon-btn plan-icon ${isPlannedForDay ? 'active' : ''}`}
+                              onClick={() => {
+                                if (isPlannedForDay) {
+                                  handleClearPlannedDateNight()
+                                } else {
+                                  handlePlanDateNight(day)
+                                }
+                              }}
+                              title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
+                            >
+                              💑
+                            </button>
                           </div>
                         </div>
                         <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">
@@ -812,14 +810,13 @@ function CalendarView() {
       </div>
 
       <div className={`calendar-sidebar ${hasExpandedSection ? 'has-expanded' : ''}`}>
-        <TodayReminders data={data} onUpdate={setData} />
-        <CycleTracker data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('cycle', expanded)} />
-        <ImportantDates data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('importantDates', expanded)} />
-        <Reminders data={data} onUpdate={setData} onExpandChange={(expanded) => handleSectionExpand('reminders', expanded)} />
+        <TodayReminders data={data} onUpdate={onUpdate} />
+        <CycleTracker data={data} onUpdate={onUpdate} onExpandChange={(expanded) => handleSectionExpand('cycle', expanded)} />
+        <ImportantDates data={data} onUpdate={onUpdate} onExpandChange={(expanded) => handleSectionExpand('importantDates', expanded)} />
+        <Reminders data={data} onUpdate={onUpdate} onExpandChange={(expanded) => handleSectionExpand('reminders', expanded)} />
       </div>
     </div>
   )
 }
 
 export default CalendarView
-
