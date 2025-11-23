@@ -1,5 +1,12 @@
 import { format, differenceInDays, isSameDay } from 'date-fns'
 
+const normalizeDateOnly = (dateStr) => {
+  if (!dateStr) return null
+  const date = new Date(`${dateStr}T00:00:00`)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 export const reminderTypes = {
   flowers: { emoji: '🌸', label: 'Flowers', defaultFrequency: 7, color: '#ff6b9d' },
   surprises: { emoji: '🎁', label: 'Small Surprises', defaultFrequency: 2, color: '#fdcb6e' },
@@ -8,6 +15,23 @@ export const reminderTypes = {
 }
 
 export const getReminderEvents = (reminder) => reminder?.events || []
+
+export const getSortedPlannedDates = (reminder) => {
+  if (!reminder || !Array.isArray(reminder.plannedDates)) return []
+  return [...reminder.plannedDates].sort()
+}
+
+export const getNextPlannedDate = (reminder) => {
+  const sorted = getSortedPlannedDates(reminder)
+  if (sorted.length === 0) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const upcoming = sorted.find(dateStr => {
+    const normalized = normalizeDateOnly(dateStr)
+    return normalized && normalized >= today
+  })
+  return upcoming || sorted[sorted.length - 1]
+}
 
 export const getLastEventDate = (reminder) => {
   if (!reminder) return null
@@ -36,11 +60,12 @@ export const getDaysUntilNext = (reminder) => {
 export const getStatusBadgeColor = (reminder) => {
   if (!reminder) return '#ccc'
   if (!reminder.enabled) return '#ccc'
-  if (reminder.plannedDate) {
+  const nextPlannedDate = getNextPlannedDate(reminder)
+  if (nextPlannedDate) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const planned = new Date(`${reminder.plannedDate}T00:00:00`)
-    planned.setHours(0, 0, 0, 0)
+    const planned = normalizeDateOnly(nextPlannedDate)
+    if (!planned) return '#ccc'
     const diff = differenceInDays(planned, today)
     if (diff > 0) return 'var(--info, #48dbfb)'
     if (diff === 0) return 'var(--warning)'
@@ -65,35 +90,39 @@ export const getStatus = (reminder, type) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  if (type === 'dateNights' && reminder.plannedDate) {
-    const plannedDate = new Date(`${reminder.plannedDate}T00:00:00`)
-    plannedDate.setHours(0, 0, 0, 0)
-    const diff = differenceInDays(plannedDate, today)
-    if (diff > 0) {
-      return {
-        status: 'planned',
-        message: `Planned in ${diff} day${diff !== 1 ? 's' : ''}`,
-        plannedDate: reminder.plannedDate,
-        daysUntilPlanned: diff,
-        isDueToday: false
+  if (type === 'dateNights') {
+    const nextPlannedDate = getNextPlannedDate(reminder)
+    if (nextPlannedDate) {
+      const plannedDate = normalizeDateOnly(nextPlannedDate)
+      if (plannedDate) {
+        const diff = differenceInDays(plannedDate, today)
+        if (diff > 0) {
+          return {
+            status: 'planned',
+            message: `Planned in ${diff} day${diff !== 1 ? 's' : ''}`,
+            plannedDate: nextPlannedDate,
+            daysUntilPlanned: diff,
+            isDueToday: false
+          }
+        }
+        if (diff === 0) {
+          return {
+            status: 'planned-today',
+            message: 'Date night today!',
+            plannedDate: nextPlannedDate,
+            daysUntilPlanned: 0,
+            isDueToday: true
+          }
+        }
+        const daysOverdue = Math.abs(diff)
+        return {
+          status: 'planned-overdue',
+          message: `Planned ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`,
+          plannedDate: nextPlannedDate,
+          daysUntilPlanned: diff,
+          isDueToday: true
+        }
       }
-    }
-    if (diff === 0) {
-      return {
-        status: 'planned-today',
-        message: 'Date night today!',
-        plannedDate: reminder.plannedDate,
-        daysUntilPlanned: 0,
-        isDueToday: true
-      }
-    }
-    const daysOverdue = Math.abs(diff)
-    return {
-      status: 'planned-overdue',
-      message: `Planned ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} ago`,
-      plannedDate: reminder.plannedDate,
-      daysUntilPlanned: diff,
-      isDueToday: true
     }
   }
 
@@ -151,14 +180,15 @@ export const isReminderDoneToday = (reminder) => {
 
 export const shouldShowTodayReminder = (reminder, type) => {
   if (!reminder || !reminder.enabled) return false
-  const plannedDate = reminder?.plannedDate
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  if (type === 'dateNights' && plannedDate) {
-    const planned = new Date(`${plannedDate}T00:00:00`)
-    planned.setHours(0, 0, 0, 0)
-    if (planned <= today) {
-      return true
+  if (type === 'dateNights') {
+    const nextPlannedDate = getNextPlannedDate(reminder)
+    if (nextPlannedDate) {
+      const planned = normalizeDateOnly(nextPlannedDate)
+      if (planned && planned <= today) {
+        return true
+      }
     }
   }
   if (type === 'general') {

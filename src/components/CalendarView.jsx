@@ -12,15 +12,49 @@ import './CalendarView.css'
 
 const REMINDER_SEGMENT_TYPES = ['flowers', 'surprises', 'general', 'dateNights']
 
+const addPlannedDateToList = (dates = [], newDateStr) => {
+  if (!newDateStr) return dates
+  if (dates.includes(newDateStr)) return dates
+  return [...dates, newDateStr].sort()
+}
+
+const filterPlannedDatesAfterDate = (dates = [], cutoffStr) => {
+  if (!cutoffStr) return dates
+  const cutoff = new Date(`${cutoffStr}T00:00:00`)
+  cutoff.setHours(0, 0, 0, 0)
+  return dates.filter(dateStr => {
+    const date = new Date(`${dateStr}T00:00:00`)
+    date.setHours(0, 0, 0, 0)
+    return date > cutoff
+  })
+}
+
+const removePlannedDateFromList = (dates = [], targetStr) => {
+  if (!targetStr) return dates
+  return dates.filter(date => date !== targetStr)
+}
+
 function CalendarView({ data, onUpdate }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showEventMenu, setShowEventMenu] = useState(null) // Date for which to show event menu
+  const [menuAnchor, setMenuAnchor] = useState(null) // Element that triggered the menu
   const menuRef = useRef(null)
   const [expandedSections, setExpandedSections] = useState({
     cycle: false,
     importantDates: false,
     reminders: false
   })
+  const [isMobileView, setIsMobileView] = useState(false)
+  const [todayTotals, setTodayTotals] = useState(0)
+  const [todayCardPosition, setTodayCardPosition] = useState('top')
+  const todayCountRef = useRef(0)
+  const todaySlideTimeoutRef = useRef(null)
+  const clearTodaySlideTimeout = () => {
+    if (todaySlideTimeoutRef.current) {
+      clearTimeout(todaySlideTimeoutRef.current)
+      todaySlideTimeoutRef.current = null
+    }
+  }
 
   const handleSectionExpand = (section, expanded) => {
     setExpandedSections(prev => ({
@@ -29,7 +63,52 @@ function CalendarView({ data, onUpdate }) {
     }))
   }
 
+  const handleTodayTotalsChange = (total) => {
+    setTodayTotals(total)
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mediaQuery = window.matchMedia('(max-width: 768px)')
+    const handleChange = (event) => setIsMobileView(event.matches)
+    setIsMobileView(mediaQuery.matches)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileView) {
+      clearTodaySlideTimeout()
+      setTodayCardPosition('top')
+      todayCountRef.current = todayTotals
+      return
+    }
+
+    const previousTotal = todayCountRef.current
+    if (todayTotals === 0) {
+      if (previousTotal > 0) {
+        setTodayCardPosition('sliding')
+        clearTodaySlideTimeout()
+        todaySlideTimeoutRef.current = setTimeout(() => {
+          setTodayCardPosition('docked')
+        }, 550)
+      } else {
+        setTodayCardPosition('docked')
+      }
+    } else {
+      clearTodaySlideTimeout()
+      setTodayCardPosition('top')
+    }
+
+    todayCountRef.current = todayTotals
+
+    return () => {
+      clearTodaySlideTimeout()
+    }
+  }, [todayTotals, isMobileView])
+
   const hasExpandedSection = expandedSections.cycle || expandedSections.importantDates || expandedSections.reminders
+  const mobileTodayClassNames = ['mobile-today-section', todayCardPosition, todayTotals === 0 ? 'empty' : 'has-items']
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -51,6 +130,7 @@ function CalendarView({ data, onUpdate }) {
   const checkInPastPeriod = (date) => isInPastPeriod(date, data.cycle.periods)
   const checkInFuturePeriod = (date) => isInFuturePeriod(date, data.cycle.expectedNextStart, data.cycle.cycleLength)
   const getCycleDayForDate = (date) => getCycleDay(date, data.cycle)
+  const plannedDateNightDates = data.reminders?.dateNights?.plannedDates || []
   
   // Check if date is a period start date
   const isPeriodStart = (date) => {
@@ -200,7 +280,7 @@ function CalendarView({ data, onUpdate }) {
       })
     }
 
-    if (data.reminders?.dateNights?.plannedDate === dateStr) {
+    if (plannedDateNightDates.includes(dateStr)) {
       events.push({
         type: 'planned-date-night',
         label: 'Date night (planned)',
@@ -217,9 +297,11 @@ function CalendarView({ data, onUpdate }) {
     // Toggle menu
     if (showEventMenu && isSameDay(day, showEventMenu)) {
       setShowEventMenu(null)
+      setMenuAnchor(null)
     } else {
       // Show event menu
       setShowEventMenu(day)
+      setMenuAnchor(e.currentTarget)
     }
   }
 
@@ -231,20 +313,47 @@ function CalendarView({ data, onUpdate }) {
       const menuElement = menuRef.current
       if (!menuElement) return
       
-      const dayElement = menuElement.parentElement
-      if (!dayElement) return
+      // If mobile, simply center fixed
+      if (isMobileView) {
+        menuElement.classList.add('mobile')
+        menuElement.classList.remove('open-upward', 'open-right', 'open-left')
+        menuElement.style.left = ''
+        menuElement.style.right = ''
+        menuElement.style.top = ''
+        menuElement.style.transform = ''
+        return
+      }
+
+      // Desktop positioning relative to anchor
+      const anchorElement = menuAnchor
+      if (!anchorElement) return
       
-      const dayRect = dayElement.getBoundingClientRect()
+      const dayRect = anchorElement.getBoundingClientRect()
       const menuRect = menuElement.getBoundingClientRect()
       const viewportHeight = window.innerHeight
       const viewportWidth = window.innerWidth
       
+      // Since menu is now fixed/absolute at root, we calculate position relative to viewport
+      // However, to make it "absolute" relative to day, we set top/left based on rects.
+      // But if it's inside a relative container... 
+      // Let's assume it's rendered in CalendarView which might have relative positioning or we use fixed positioning for desktop too but calculated.
+      // Actually, if we render it at root level of component, and component is in flow.
+      // Best is to use fixed positioning for the menu so we don't worry about parents, just viewport.
+      menuElement.style.position = 'fixed'
+      
       const menuHeight = menuRect.height || 400
       const menuWidth = menuRect.width || 300
+      
       const spaceBelow = viewportHeight - dayRect.bottom
       const spaceAbove = dayRect.top
       const spaceRight = viewportWidth - dayRect.right
       const spaceLeft = dayRect.left
+      
+      menuElement.classList.remove('open-upward', 'open-right', 'open-left', 'mobile')
+      
+      // Default: open below, centered horizontally if possible
+      let top = dayRect.bottom + 5
+      let left = dayRect.left + (dayRect.width / 2) - (menuWidth / 2)
       
       const dayIndex = calendarDays.findIndex(d => isSameDay(d, showEventMenu))
       const column = dayIndex % 7
@@ -253,52 +362,92 @@ function CalendarView({ data, onUpdate }) {
       
       const fitsBelow = spaceBelow >= menuHeight + 20
       const fitsAbove = spaceAbove >= menuHeight + 20
-      const fitsRight = spaceRight >= menuWidth + 10
-      const fitsLeft = spaceLeft >= menuWidth + 10
-      
-      menuElement.classList.remove('open-upward', 'open-right', 'open-left', 'mobile')
-      menuElement.style.left = ''
-      menuElement.style.right = ''
-      menuElement.style.top = ''
-      menuElement.style.transform = ''
-      menuElement.style.width = ''
-      menuElement.style.maxWidth = ''
-      menuElement.style.maxHeight = ''
-
-      if (viewportWidth <= 768) {
-        menuElement.classList.add('mobile')
-        return
-      }
       
       if (!fitsBelow && !fitsAbove) {
-        if (isLeftSide && fitsRight) {
-          menuElement.classList.add('open-right')
-        } else if (isRightSide && fitsLeft) {
-          menuElement.classList.add('open-left')
-        } else if (fitsAbove) {
-          const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
-          if (estimatedTopWhenUpward >= 20) {
+        // Side opening logic if doesn't fit vertically
+         if (isLeftSide && spaceRight >= menuWidth + 10) {
+            menuElement.classList.add('open-right')
+            top = dayRect.top
+            left = dayRect.right + 5
+         } else if (isRightSide && spaceLeft >= menuWidth + 10) {
+            menuElement.classList.add('open-left')
+            top = dayRect.top
+            left = dayRect.left - menuWidth - 5
+         } else if (fitsAbove) {
             menuElement.classList.add('open-upward')
-          }
-        }
+            top = dayRect.top - menuHeight - 5
+            left = dayRect.left + (dayRect.width / 2) - (menuWidth / 2)
+         }
       } else if (!fitsBelow && fitsAbove) {
-        const estimatedTopWhenUpward = dayRect.top - menuHeight - 5
-        if (estimatedTopWhenUpward >= 20) {
-          menuElement.classList.add('open-upward')
-        }
+         menuElement.classList.add('open-upward')
+         top = dayRect.top - menuHeight - 5
+      }
+
+      // Constrain horizontal
+      if (left < 10) left = 10
+      if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10
+
+      menuElement.style.top = `${top}px`
+      menuElement.style.left = `${left}px`
+      // Clear transform that might interfere (except what's needed for animations)
+      // The CSS classes use transforms for animation, so we should let them be.
+      // But we need to override the CSS positioning which might expect parent-relative.
+      // The existing CSS for .event-menu has transform: translateX(-50%) by default.
+      // If we manually set left, we might fight with it.
+      // Let's adjust:
+      
+      // If we are using fixed positioning calculated from rects, we should remove the default translateX(-50%)
+      // from CSS or account for it.
+      // The CSS has: transform: translateX(-50%); left: 50%;
+      // We are overriding left. We should reset transform if we want precise control.
+      // However, the animations use transforms.
+      
+      // Let's just use specific styles for this mode.
+      // Actually, simpler: just set CSS variables or modify styles directly.
+      
+      // If we don't use the CSS classes for positioning logic (open-right etc) but just for animation.
+      // The CSS classes also set positions (top/left/right).
+      // We should probably rely on JS for positioning since we moved it out of context.
+      
+      // Let's unset the CSS-driven positioning classes effects by overriding styles inline.
+      // We keep the classes for animation keyframes if they match.
+      
+      if (menuElement.classList.contains('open-right')) {
+         // open-right uses translateX(0)
+         menuElement.style.transform = 'none'
+      } else if (menuElement.classList.contains('open-left')) {
+         // open-left uses translateX(0)
+         menuElement.style.transform = 'none'
+      } else {
+         // default and open-upward use translateX(-50%)
+         // But our `left` calculation centered it manually: left = dayRect.left + (dayRect.width / 2) - (menuWidth / 2)
+         // If we use that `left`, we want transform: none.
+         // But if we want to use the CSS animation which has translateX(-50%), we should set `left` to the center point.
+         // Let's set left to center point.
+         left = dayRect.left + (dayRect.width / 2)
+         menuElement.style.left = `${left}px`
       }
     }
     
     setTimeout(adjustMenuPosition, 10)
-  }, [showEventMenu, calendarDays])
+    // Re-adjust on scroll/resize
+    window.addEventListener('resize', adjustMenuPosition)
+    window.addEventListener('scroll', adjustMenuPosition, true)
+    
+    return () => {
+      window.removeEventListener('resize', adjustMenuPosition)
+      window.removeEventListener('scroll', adjustMenuPosition, true)
+    }
+  }, [showEventMenu, calendarDays, isMobileView, menuAnchor])
 
   // Close menu when clicking outside or pressing Escape
   useEffect(() => {
     if (!showEventMenu) return
     
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.calendar-day') && !e.target.closest('.event-menu')) {
+      if (!e.target.closest('.event-menu') && !e.target.closest('.calendar-day.selected')) {
         setShowEventMenu(null)
+        setMenuAnchor(null)
       }
     }
     
@@ -455,7 +604,7 @@ function CalendarView({ data, onUpdate }) {
       }
     })
 
-    if (data.reminders?.dateNights?.plannedDate === dateStr) {
+    if (plannedDateNightDates.includes(dateStr)) {
       events.push({
         type: 'planned-date-night',
         reminderType: 'dateNights',
@@ -491,15 +640,15 @@ function CalendarView({ data, onUpdate }) {
       events: [...existingEvents, dateStr].sort().reverse()
     }
 
-    if (type === 'dateNights' && updatedReminder.plannedDate) {
-      const planned = new Date(`${updatedReminder.plannedDate}T00:00:00`)
-      planned.setHours(0, 0, 0, 0)
-      const eventDateObj = new Date(`${dateStr}T00:00:00`)
-      eventDateObj.setHours(0, 0, 0, 0)
-      if (eventDateObj >= planned) {
-        updatedReminder = {
-          ...updatedReminder,
-          plannedDate: null
+    if (type === 'dateNights') {
+      const plannedDates = updatedReminder.plannedDates || []
+      if (plannedDates.length > 0) {
+        const filtered = filterPlannedDatesAfterDate(plannedDates, dateStr)
+        if (filtered.length !== plannedDates.length) {
+          updatedReminder = {
+            ...updatedReminder,
+            plannedDates: filtered
+          }
         }
       }
     }
@@ -556,28 +705,32 @@ function CalendarView({ data, onUpdate }) {
     if (normalizedDate < today) return
     const reminder = data.reminders.dateNights
     if (!reminder) return
+    const updatedReminder = {
+      ...reminder,
+      plannedDates: addPlannedDateToList(reminder.plannedDates || [], dateStr)
+    }
     const newData = updateData({
       reminders: {
         ...data.reminders,
-        dateNights: {
-          ...reminder,
-          plannedDate: dateStr
-        }
+        dateNights: updatedReminder
       }
     })
     onUpdate(newData)
   }
 
-  const handleClearPlannedDateNight = () => {
+  const handleClearPlannedDateNight = (date) => {
     const reminder = data.reminders.dateNights
-    if (!reminder || !reminder.plannedDate) return
+    const plannedDates = reminder?.plannedDates || []
+    if (!reminder || plannedDates.length === 0) return
+    const targetDate = date ? format(date, 'yyyy-MM-dd') : plannedDates[0]
+    const updatedReminder = {
+      ...reminder,
+      plannedDates: removePlannedDateFromList(plannedDates, targetDate)
+    }
     const newData = updateData({
       reminders: {
         ...data.reminders,
-        dateNights: {
-          ...reminder,
-          plannedDate: null
-        }
+        dateNights: updatedReminder
       }
     })
     onUpdate(newData)
@@ -585,8 +738,116 @@ function CalendarView({ data, onUpdate }) {
 
   return (
     <div className="calendar-view">
-      <div className="mobile-today-section">
-         <TodayReminders data={data} onUpdate={onUpdate} />
+      {showEventMenu && (
+        <div
+          className={`calendar-overlay ${isMobileView ? 'mobile' : ''}`}
+          onClick={() => {
+            setShowEventMenu(null)
+            setMenuAnchor(null)
+          }}
+        ></div>
+      )}
+      {showEventMenu && (() => {
+        const day = showEventMenu
+        const eventList = getEventListForDate(day)
+        const periodStart = isPeriodStart(day)
+        const periodEnd = isPeriodEnd(day)
+        const dateStr = format(day, 'yyyy-MM-dd')
+        const isPlannedForDay = plannedDateNightDates.includes(dateStr)
+        const dayStart = new Date(day)
+        dayStart.setHours(0, 0, 0, 0)
+        const isPastDay = dayStart < todayStart
+        const showPlanButton = !isPastDay || isPlannedForDay
+        
+        return (
+          <div ref={menuRef} className="event-menu" onClick={(e) => e.stopPropagation()}>
+            {eventList.length > 0 && (
+              <>
+                <div className="menu-section">
+                  <div className="menu-section-title">Events</div>
+                  <div className="event-list">
+                    {eventList.map((event, idx) => (
+                      <div key={idx} className="event-list-item">
+                        <span className="event-emoji">{event.emoji}</span>
+                        <span className="event-label">{event.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="menu-divider"></div>
+              </>
+            )}
+            <div className="menu-section">
+              <div className="menu-section-title">Cycle</div>
+              <div className="cycle-buttons">
+              <button onClick={() => handleAddPeriodStart(day)} className={`cycle-btn ${periodStart ? 'active' : ''}`} title="Mark as Start">
+                  Start
+                </button>
+              <button onClick={() => handleAddPeriodEnd(day)} className={`cycle-btn ${periodEnd ? 'active' : ''}`} title="Mark as End">
+                  End
+                </button>
+                <button onClick={() => handleRemovePeriod(day)} className="cycle-btn remove" title="Remove Period">
+                  Remove
+                </button>
+              </div>
+            </div>
+            <div className="menu-divider"></div>
+            <div className="menu-section">
+              <div className="menu-section-title">Reminders</div>
+              <div className="reminders-row">
+                {[
+                  { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'Remove flowers' },
+                  { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'Remove surprise' },
+                  { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'Remove love' },
+                  { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'Remove date night' },
+                ].map(({ type, emoji, addLabel, removeLabel }) => {
+                  const dateEvents = getReminderEventsForDate(day)
+                  const hasEvent = dateEvents.some(e => e.type === type)
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        if (hasEvent) {
+                          handleRemoveReminderEvent(day, type)
+                        } else {
+                          handleAddReminderEvent(day, type)
+                        }
+                      }}
+                      className={`reminder-icon-btn ${hasEvent ? 'remove' : 'add'}`}
+                      title={hasEvent ? removeLabel : addLabel}
+                    >
+                      {emoji}
+                    </button>
+                  )
+                })}
+                {showPlanButton && (
+                  <>
+                    <div className="reminder-plan-divider"></div>
+                  <button
+                    className={`reminder-icon-btn plan-icon ${isPlannedForDay ? 'active' : ''}`}
+                    onClick={() => {
+                      if (isPlannedForDay) {
+                        handleClearPlannedDateNight(day)
+                      } else {
+                        handlePlanDateNight(day)
+                      }
+                    }}
+                    title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
+                  >
+                    💑
+                  </button>
+                  </>
+                )}
+              </div>
+            </div>
+            <button onClick={() => { setShowEventMenu(null); setMenuAnchor(null); }} className="period-btn cancel">
+              Cancel
+            </button>
+          </div>
+        )
+      })()}
+      <div className={mobileTodayClassNames.join(' ')}>
+         <TodayReminders data={data} onUpdate={onUpdate} onTotalsChange={handleTodayTotalsChange} />
       </div>
       <div className="calendar-container">
         <div className="calendar-header">
@@ -636,7 +897,7 @@ function CalendarView({ data, onUpdate }) {
                 acc[type] = events.some(event => event.type === type)
                 return acc
               }, {})
-              const isPlannedForDay = data.reminders?.dateNights?.plannedDate === dayStr
+              const isPlannedForDay = plannedDateNightDates.includes(dayStr)
               const dayStart = new Date(day)
               dayStart.setHours(0, 0, 0, 0)
               const isPastDay = dayStart < todayStart
@@ -762,96 +1023,7 @@ function CalendarView({ data, onUpdate }) {
                     }
                     return null
                   })()}
-                  {showEventMenu && isSameDay(day, showEventMenu) && (() => {
-                    const eventList = getEventListForDate(day)
-                    return (
-                      <div ref={menuRef} className="event-menu" onClick={(e) => e.stopPropagation()}>
-                        {/* Event list section */}
-                        {eventList.length > 0 && (
-                          <>
-                            <div className="menu-section">
-                              <div className="menu-section-title">Events</div>
-                              <div className="event-list">
-                                {eventList.map((event, idx) => (
-                                  <div key={idx} className="event-list-item">
-                                    <span className="event-emoji">{event.emoji}</span>
-                                    <span className="event-label">{event.label}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="menu-divider"></div>
-                          </>
-                        )}
-                        <div className="menu-section">
-                          <div className="menu-section-title">Cycle</div>
-                          <div className="cycle-buttons">
-                          <button onClick={() => handleAddPeriodStart(day)} className={`cycle-btn ${periodStart ? 'active' : ''}`} title="Mark as Start">
-                              Start
-                            </button>
-                          <button onClick={() => handleAddPeriodEnd(day)} className={`cycle-btn ${periodEnd ? 'active' : ''}`} title="Mark as End">
-                              End
-                            </button>
-                            <button onClick={() => handleRemovePeriod(day)} className="cycle-btn remove" title="Remove Period">
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                        <div className="menu-divider"></div>
-                        <div className="menu-section">
-                          <div className="menu-section-title">Reminders</div>
-                          <div className="reminders-row">
-                            {[
-                              { type: 'flowers', emoji: '🌸', addLabel: 'Give flowers', removeLabel: 'Remove flowers' },
-                              { type: 'surprises', emoji: '🎁', addLabel: 'Make a surprise', removeLabel: 'Remove surprise' },
-                              { type: 'general', emoji: '💕', addLabel: 'Show love', removeLabel: 'Remove love' },
-                              { type: 'dateNights', emoji: '💑', addLabel: 'Date night', removeLabel: 'Remove date night' },
-                            ].map(({ type, emoji, addLabel, removeLabel }) => {
-                              const dateEvents = getReminderEventsForDate(day)
-                              const hasEvent = dateEvents.some(e => e.type === type)
-                              return (
-                                <button
-                                  key={type}
-                                  onClick={() => {
-                                    if (hasEvent) {
-                                      handleRemoveReminderEvent(day, type)
-                                    } else {
-                                      handleAddReminderEvent(day, type)
-                                    }
-                                  }}
-                                  className={`reminder-icon-btn ${hasEvent ? 'remove' : 'add'}`}
-                                  title={hasEvent ? removeLabel : addLabel}
-                                >
-                                  {emoji}
-                                </button>
-                              )
-                            })}
-                            {showPlanButton && (
-                              <>
-                                <div className="reminder-plan-divider"></div>
-                              <button
-                                className={`reminder-icon-btn plan-icon ${isPlannedForDay ? 'active' : ''}`}
-                                onClick={() => {
-                                  if (isPlannedForDay) {
-                                    handleClearPlannedDateNight()
-                                  } else {
-                                    handlePlanDateNight(day)
-                                  }
-                                }}
-                                title={isPlannedForDay ? 'Remove planned date night' : 'Plan date night'}
-                              >
-                                💑
-                              </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <button onClick={() => setShowEventMenu(null)} className="period-btn cancel">
-                          Cancel
-                        </button>
-                      </div>
-                    )
-                  })()}
+                  {/* Event menu rendered at root level */}
                 </div>
               )
             })}

@@ -7,7 +7,9 @@ import {
   getStatusBadgeColor,
   getLastEventDate,
   getDaysSince,
-  getPreviousEventDate
+  getPreviousEventDate,
+  getNextPlannedDate,
+  getSortedPlannedDates
 } from '../utils/reminderUtils'
 import './Reminders.css'
 
@@ -24,6 +26,24 @@ const motivationalPhrases = [
   'Make her smile again today! 😊',
   'Your love makes a difference every day!'
 ]
+
+const filterPlannedDatesAfter = (plannedDates = [], cutoffDateStr) => {
+  if (!cutoffDateStr) return plannedDates
+  const cutoff = new Date(`${cutoffDateStr}T00:00:00`)
+  cutoff.setHours(0, 0, 0, 0)
+  return plannedDates.filter(dateStr => {
+    const date = new Date(`${dateStr}T00:00:00`)
+    date.setHours(0, 0, 0, 0)
+    return date > cutoff
+  })
+}
+
+const addPlannedDate = (plannedDates = [], newDateStr) => {
+  if (!newDateStr) return plannedDates
+  const set = new Set(plannedDates)
+  set.add(newDateStr)
+  return Array.from(set).sort()
+}
 
 function Reminders({ data, onUpdate, onExpandChange }) {
   const [editing, setEditing] = useState(null)
@@ -80,15 +100,15 @@ function Reminders({ data, onUpdate, onExpandChange }) {
       events: [...existingEvents, eventDate].sort().reverse()
     }
 
-    if (type === 'dateNights' && updatedReminder.plannedDate) {
-      const planned = new Date(`${updatedReminder.plannedDate}T00:00:00`)
-      planned.setHours(0, 0, 0, 0)
-      const eventDateObj = new Date(`${eventDate}T00:00:00`)
-      eventDateObj.setHours(0, 0, 0, 0)
-      if (eventDateObj >= planned) {
-        updatedReminder = {
-          ...updatedReminder,
-          plannedDate: null
+    if (type === 'dateNights') {
+      const plannedDates = updatedReminder.plannedDates || []
+      if (plannedDates.length > 0) {
+        const filtered = filterPlannedDatesAfter(plannedDates, eventDate)
+        if (filtered.length !== plannedDates.length) {
+          updatedReminder = {
+            ...updatedReminder,
+            plannedDates: filtered
+          }
         }
       }
     }
@@ -206,10 +226,11 @@ function Reminders({ data, onUpdate, onExpandChange }) {
   }
 
   const handleStartPlan = (type) => {
-    const existingDate = data.reminders[type]?.plannedDate
+    const reminder = data.reminders[type]
+    const upcomingDates = getSortedPlannedDates(reminder)
     setPlanningType(type)
-    if (existingDate) {
-      setPlannedDateInput(existingDate)
+    if (upcomingDates.length > 0) {
+      setPlannedDateInput(upcomingDates[0])
     } else {
       const today = new Date()
       setPlannedDateInput(format(today, 'yyyy-MM-dd'))
@@ -233,21 +254,30 @@ function Reminders({ data, onUpdate, onExpandChange }) {
   }
 
   const handlePlanDateNight = (type) => {
-    if (!plannedDateInput) return
+    if (type !== 'dateNights' || !plannedDateInput) return
+    const selectedDate = new Date(`${plannedDateInput}T00:00:00`)
+    selectedDate.setHours(0, 0, 0, 0)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (selectedDate < today) {
+      return
+    }
     applyReminderUpdate(type, (reminder) => ({
       ...reminder,
-      plannedDate: plannedDateInput
+      plannedDates: addPlannedDate(reminder.plannedDates || [], plannedDateInput)
     }))
     setPlanningType(null)
     setPlannedDateInput('')
   }
 
-  const handleClearPlan = (type) => {
+  const handleClearPlan = (type, dateToRemove = null) => {
     const reminder = data.reminders[type]
-    if (!reminder?.plannedDate) return
+    const plannedDates = reminder?.plannedDates || []
+    if (plannedDates.length === 0) return
+    const targetDate = dateToRemove || plannedDates[0]
     applyReminderUpdate(type, (rem) => ({
       ...rem,
-      plannedDate: null
+      plannedDates: (rem.plannedDates || []).filter(date => date !== targetDate)
     }))
     if (planningType === type) {
       setPlanningType(null)
@@ -274,6 +304,11 @@ function Reminders({ data, onUpdate, onExpandChange }) {
           if (!reminder) return null
           const status = getStatus(reminder, type)
           const daysSince = getDaysSince(reminder)
+          const upcomingPlannedDates = getSortedPlannedDates(reminder)
+          const nextPlannedDate =
+            type === 'dateNights'
+              ? (getNextPlannedDate(reminder) || upcomingPlannedDates[0] || null)
+              : null
 
           return (
             <div key={type} className={`reminder-item ${status.status}`}>
@@ -341,8 +376,8 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                           <span>
                             {type === 'general'
                               ? 'Every day'
-                              : (type === 'dateNights' && reminder.plannedDate)
-                                ? `Planned for ${format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM')}`
+                              : (type === 'dateNights' && nextPlannedDate)
+                                ? `Planned for ${format(new Date(nextPlannedDate + 'T00:00:00'), 'd MMM')}${upcomingPlannedDates.length > 1 ? ` (+${upcomingPlannedDates.length - 1} more)` : ''}`
                                 : `Every ${reminder.frequency} days`}
                           </span>
                           {getLastEventDate(reminder) && (() => {
@@ -466,19 +501,38 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                         </div>
                       ) : (
                         <div className="plan-summary">
-                          {reminder.plannedDate ? (
+                          {nextPlannedDate ? (
                             <>
                               <span>
                                 Next date night on{' '}
-                                <strong>{format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM yyyy')}</strong>
+                                <strong>{format(new Date(nextPlannedDate + 'T00:00:00'), 'd MMM yyyy')}</strong>
                               </span>
+                              {upcomingPlannedDates.length > 1 && (
+                                <div className="plan-more">
+                                  +{upcomingPlannedDates.length - 1} more scheduled
+                                </div>
+                              )}
                               <div className="plan-buttons">
                                 <button className="btn-outline" onClick={() => handleStartPlan(type)}>
-                                  Reschedule
+                                  Add / reschedule
                                 </button>
                                 <button className="btn-clear" onClick={() => handleClearPlan(type)}>
-                                  Remove
+                                  Remove next
                                 </button>
+                              </div>
+                              <div className="planned-date-chips">
+                                {upcomingPlannedDates.map(date => (
+                                  <div key={date} className="planned-date-chip">
+                                    {format(new Date(date + 'T00:00:00'), 'd MMM')}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleClearPlan(type, date)}
+                                      title="Remove this plan"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
                             </>
                           ) : (

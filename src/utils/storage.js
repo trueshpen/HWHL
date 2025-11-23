@@ -10,13 +10,14 @@ const defaultData = {
     cycleLength: DEFAULT_CYCLE_LENGTH, // Will be calculated from periods
     suggestions: {
       // Phase-based suggestions: { phase: string, items: [{ type: 'do'|'dont', text: string, id: string }] }
-      // Phases: 'period', 'post-period', 'ovulation', 'pre-period'
+      // Phases: 'period', 'post-period', 'ovulation', 'wild-breeze', 'pre-period'
     }
   },
   importantDates: [],
   likes: [],
   dislikes: [],
   wishlist: [],
+  giftIdeas: [],
   reminders: {
     flowers: { 
       enabled: true, 
@@ -26,7 +27,7 @@ const defaultData = {
       notes: [] // Array of { type: 'like'|'dislike', text: string, id: string }
     },
     surprises: { enabled: true, frequency: 2, lastDone: null, events: [] },
-    dateNights: { enabled: true, frequency: 7, lastDone: null, events: [], notes: [], plannedDate: null },
+    dateNights: { enabled: true, frequency: 7, lastDone: null, events: [], notes: [], plannedDates: [] },
     general: { enabled: true, frequency: 1, lastDone: null, events: [], notes: [
       { id: 'general-1', type: 'love', text: 'She is the love of my life' },
       { id: 'general-2', type: 'love', text: 'I must make her happy EVERY DAY' },
@@ -94,7 +95,14 @@ const migrateReminderData = (oldReminders) => {
           { id: 'general-2', type: 'love', text: 'I must make her happy EVERY DAY' },
           { id: 'general-3', type: 'love', text: 'Support her, take care of her' }
         ] : []), // Add notes array if missing, with defaults for general
-        plannedDate: oldReminders[type].plannedDate || null
+        plannedDates: type === 'dateNights' ? (() => {
+          const legacyDates = oldReminders[type].plannedDates || []
+          const plannedDates = Array.isArray(legacyDates) ? [...legacyDates] : []
+          if (oldReminders[type].plannedDate && !plannedDates.includes(oldReminders[type].plannedDate)) {
+            plannedDates.push(oldReminders[type].plannedDate)
+          }
+          return plannedDates
+        })() : []
       }
       // Migrate old default frequency for surprises
       if (type === 'surprises' && oldReminders[type].frequency === 14) {
@@ -144,6 +152,10 @@ const migrateCycleData = (oldCycle) => {
 // Apply migrations to data
 const applyMigrations = (data) => {
   const merged = { ...defaultData, ...data }
+
+  if (!Array.isArray(merged.giftIdeas)) {
+    merged.giftIdeas = []
+  }
   
   // Migrate cycle data if needed
   if (data.cycle) {

@@ -20,6 +20,12 @@ function PasswordProtection({ onAuthenticated }) {
   // Check if already authenticated in this session
   useEffect(() => {
     const authStatus = sessionStorage.getItem('app_authenticated')
+    const deadline = parseInt(sessionStorage.getItem('auto_logout_deadline') || '0', 10)
+    if (deadline && Date.now() >= deadline) {
+      sessionStorage.removeItem('app_authenticated')
+      sessionStorage.removeItem('auto_logout_deadline')
+      return
+    }
     if (authStatus === 'true') {
       setIsAuthenticated(true)
       onAuthenticated()
@@ -43,6 +49,7 @@ function PasswordProtection({ onAuthenticated }) {
     if (fullCode.length === CODE_LENGTH) {
       if (fullCode === CORRECT_PASSWORD) {
         sessionStorage.setItem('app_authenticated', 'true')
+        sessionStorage.removeItem('auto_logout_deadline')
         setIsAuthenticated(true)
         onAuthenticated()
       } else {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import CalendarView from './components/CalendarView'
 import NotesView from './components/NotesView'
 import PersonalizationView from './components/PersonalizationView'
@@ -15,8 +15,19 @@ function App() {
   const [backupStatus, setBackupStatus] = useState(null)
   const [notificationStatus, setNotificationStatus] = useState(null)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const fileInputRef = useRef(null)
   const settingsMenuRef = useRef(null)
+  const autoLogoutTimerRef = useRef(null)
+  const clearAutoLogoutTimer = useCallback((clearStorage = false) => {
+    if (autoLogoutTimerRef.current) {
+      clearTimeout(autoLogoutTimerRef.current)
+      autoLogoutTimerRef.current = null
+    }
+    if (clearStorage) {
+      sessionStorage.removeItem('auto_logout_deadline')
+    }
+  }, [])
 
   // Load data from server on mount
   useEffect(() => {
@@ -63,12 +74,13 @@ function App() {
     setShowSettingsMenu(false)
   }
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
+    clearAutoLogoutTimer(true)
     sessionStorage.removeItem('app_authenticated')
     setIsAuthenticated(false)
     setAuthKey(prev => prev + 1) // Force PasswordProtection to remount
     setShowSettingsMenu(false)
-  }
+  }, [clearAutoLogoutTimer])
 
   useEffect(() => {
     if (!backupStatus) return
@@ -81,6 +93,69 @@ function App() {
     const timer = setTimeout(() => setNotificationStatus(null), 4000)
     return () => clearTimeout(timer)
   }, [notificationStatus])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mediaQuery = window.matchMedia('(max-width: 768px)')
+    const updateViewport = (event) => setIsMobileViewport(event.matches)
+    setIsMobileViewport(mediaQuery.matches)
+    mediaQuery.addEventListener('change', updateViewport)
+    return () => mediaQuery.removeEventListener('change', updateViewport)
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const deadline = parseInt(sessionStorage.getItem('auto_logout_deadline') || '0', 10)
+    if (deadline && Date.now() >= deadline) {
+      handleLogout()
+    }
+  }, [isAuthenticated, handleLogout])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      clearAutoLogoutTimer(true)
+      return
+    }
+    if (typeof document === 'undefined') return
+
+    const startCountdown = () => {
+      if (!isMobileViewport) return
+      const deadline = Date.now() + 60000
+      sessionStorage.setItem('auto_logout_deadline', String(deadline))
+      clearAutoLogoutTimer()
+      autoLogoutTimerRef.current = setTimeout(() => {
+        handleLogout()
+      }, 60000)
+    }
+
+    const handleVisibilityChange = () => {
+      if (!isMobileViewport) return
+      if (document.visibilityState === 'hidden') {
+        startCountdown()
+      } else if (document.visibilityState === 'visible') {
+        const deadline = parseInt(sessionStorage.getItem('auto_logout_deadline') || '0', 10)
+        if (deadline && Date.now() >= deadline) {
+          clearAutoLogoutTimer(true)
+          handleLogout()
+        } else {
+          clearAutoLogoutTimer(true)
+        }
+      }
+    }
+
+    const handlePageHide = () => {
+      if (!isMobileViewport) return
+      startCountdown()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pagehide', handlePageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pagehide', handlePageHide)
+      clearAutoLogoutTimer(true)
+    }
+  }, [isAuthenticated, isMobileViewport, handleLogout, clearAutoLogoutTimer])
 
   const handleExportData = () => {
     try {

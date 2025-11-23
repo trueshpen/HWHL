@@ -5,6 +5,19 @@
   flex-direction: column; /* Changed to column to handle mobile-first approach easier */
 }
 
+.calendar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 400;
+  cursor: pointer;
+}
+
+.calendar-overlay.mobile {
+  background: rgba(15, 15, 15, 0.55);
+  backdrop-filter: blur(2px);
+}
+
 /* Wrapper for the main calendar area */
 .calendar-container {
   flex: 1;
@@ -49,10 +62,51 @@
     display: block;
     width: 100%;
     margin-bottom: 0.5rem;
+    transition: transform 0.45s ease, opacity 0.3s ease;
   }
   
+  .mobile-today-section.sliding {
+    animation: mobileTodaySlideDown 0.55s forwards ease-in-out;
+  }
+  
+  .mobile-today-section.docked {
+    transform: translateY(0);
+    opacity: 0.95;
+    margin-top: 1rem;
+  }
+
+  .mobile-today-section.empty {
+    opacity: 0.9;
+  }
+
   .calendar-container {
     padding: 0.75rem;
+  }
+}
+
+@keyframes mobileTodaySlideDown {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1199px) {
+  .mobile-today-section.top,
+  .mobile-today-section.sliding {
+    order: 0;
+  }
+
+  .calendar-container {
+    order: 1;
+  }
+
+  .mobile-today-section.docked {
+    order: 2;
   }
 }
 
@@ -475,10 +529,10 @@
   transform: translateX(-50%);
   background: var(--bg-card);
   background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px var(--shadow);
-  z-index: 200;
+  border: 2px solid #e63946;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(230, 57, 70, 0.25);
+  z-index: 900;
   width: 280px;
   padding: 1rem;
   margin-top: 0.5rem;
@@ -495,7 +549,9 @@
   max-width: 360px;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  z-index: 999;
+  z-index: 1500;
+  border-width: 3px;
+  box-shadow: 0 24px 60px rgba(230, 57, 70, 0.4);
 }
 
 @keyframes fadeIn {

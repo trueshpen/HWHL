@@ -308,7 +308,7 @@ App
 #### constants.js
 - **Purpose**: Application constants and phase definitions
 - **Exports**:
-  - `PHASES` - Cycle phase definitions (period, post-period, ovulation, pre-period)
+  - `PHASES` - Cycle phase definitions (period, post-period, ovulation, wild-breeze, pre-period)
   - `DEFAULT_CYCLE_LENGTH` - Default cycle length (28 days)
   - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days, 5 days total including start and end)
   - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (9 days)

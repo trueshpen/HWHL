@@ -91,10 +91,11 @@ app.get('/api/data', (req, res) => {
       likes: [],
       dislikes: [],
       wishlist: [],
+      giftIdeas: [],
       reminders: {
         flowers: { enabled: true, frequency: 7, lastDone: null, events: [], notes: [] },
         surprises: { enabled: true, frequency: 2, lastDone: null, events: [] },
-        dateNights: { enabled: true, frequency: 7, lastDone: null, events: [] },
+        dateNights: { enabled: true, frequency: 7, lastDone: null, events: [], plannedDates: [] },
         general: { 
           enabled: true, 
           frequency: 1, 

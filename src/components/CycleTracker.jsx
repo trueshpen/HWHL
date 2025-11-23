@@ -6,11 +6,13 @@ import { getCycleDay } from '../utils/cycleUtils'
 import './CycleTracker.css'
 
 function CycleTracker({ data, onUpdate, onExpandChange }) {
+  const phaseKeys = Object.keys(PHASES)
+  const defaultPhaseKey = phaseKeys[0] || 'period'
   const periods = data.cycle.periods || []
   const [editingPhase, setEditingPhase] = useState(null)
   const [newItemText, setNewItemText] = useState('')
   const [newItemType, setNewItemType] = useState('do')
-  const [selectedPhaseForAdd, setSelectedPhaseForAdd] = useState('pre-period')
+  const [selectedPhaseForAdd, setSelectedPhaseForAdd] = useState(defaultPhaseKey)
   const [isExpanded, setIsExpanded] = useState(false)
   
   const handleExpandChange = (expanded) => {

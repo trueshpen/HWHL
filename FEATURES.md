@@ -57,7 +57,8 @@ Track menstrual cycle with automatic calculations and phase-based suggestions.
   - 🌛 **Moon Days** (Days 1-5): Period phase
   - 🌱 **Fresh Start** (Days 6-9): Post-period phase
   - ✨ **Shining Peak** (Days 10-15): Ovulation phase
-  - 🍃 **Wind Down** (Days 16-28+): Pre-period phase
+  - 🌬️ **Wild Breeze** (Days 16-20): Gentle transition phase
+  - 🍃 **Wind Down** (Days 21-28+): Pre-period phase
 
 **Phase-Based Suggestions:**
 - Add custom "To Do" and "Not To Do" items for each phase

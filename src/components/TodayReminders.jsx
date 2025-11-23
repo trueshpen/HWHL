@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { format, isSameDay, addDays } from 'date-fns'
 import { updateData } from '../utils/storage'
 import { PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
@@ -5,11 +6,12 @@ import {
   reminderTypes,
   shouldShowTodayReminder,
   getStatus,
-  getLastEventDate
+  getLastEventDate,
+  getNextPlannedDate
 } from '../utils/reminderUtils'
 import './TodayReminders.css'
 
-function TodayReminders({ data, onUpdate }) {
+function TodayReminders({ data, onUpdate, onTotalsChange }) {
   if (!data?.reminders) return null
 
   const today = new Date()
@@ -28,7 +30,8 @@ function TodayReminders({ data, onUpdate }) {
         info,
         reminder,
         status,
-        lastEventDate
+        lastEventDate,
+        nextPlannedDate: getNextPlannedDate(reminder)
       }
     })
     .filter(Boolean)
@@ -59,6 +62,12 @@ function TodayReminders({ data, onUpdate }) {
   })()
 
   const totalItems = pendingReminders.length + todayImportantDates.length + (has8DayAlert ? 1 : 0)
+
+  useEffect(() => {
+    if (typeof onTotalsChange === 'function') {
+      onTotalsChange(totalItems)
+    }
+  }, [totalItems, onTotalsChange])
 
   const handleMarkDone = (type) => {
     const reminder = data.reminders[type]
@@ -107,7 +116,7 @@ function TodayReminders({ data, onUpdate }) {
             <>
               <div className="today-section-title">Reminders</div>
               <div className="today-list">
-                {pendingReminders.map(({ type, info, reminder, status, lastEventDate }) => (
+                {pendingReminders.map(({ type, info, reminder, status, lastEventDate, nextPlannedDate }) => (
                   <div key={type} className="today-item">
                     <div className="today-info">
                       <span className="today-emoji">{info.emoji}</span>
@@ -118,9 +127,9 @@ function TodayReminders({ data, onUpdate }) {
                             Last: {format(new Date(lastEventDate.includes('T') ? lastEventDate : `${lastEventDate}T00:00:00`), 'd MMM')}
                           </span>
                         )}
-                        {type === 'dateNights' && reminder?.plannedDate && (
+                        {type === 'dateNights' && nextPlannedDate && (
                           <span className="today-subtext">
-                            Planned for {format(new Date(reminder.plannedDate + 'T00:00:00'), 'd MMM')}
+                            Planned for {format(new Date(nextPlannedDate + 'T00:00:00'), 'd MMM')}
                           </span>
                         )}
                       </div>

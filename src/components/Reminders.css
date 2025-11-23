@@ -318,10 +318,46 @@
   color: var(--text);
 }
 
+.plan-more {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
 .plan-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.planned-date-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.planned-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.planned-date-chip button {
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.planned-date-chip button:hover {
+  color: var(--primary);
 }
 
 .plan-date-form {
