@@ -349,7 +349,7 @@ function CalendarView({ data, onUpdate }) {
       const spaceRight = viewportWidth - dayRect.right
       const spaceLeft = dayRect.left
       
-      menuElement.classList.remove('open-upward', 'open-right', 'open-left', 'mobile')
+      menuElement.classList.remove('mobile')
       
       // Default: open below, centered horizontally if possible
       let top = dayRect.bottom + 5
@@ -363,24 +363,40 @@ function CalendarView({ data, onUpdate }) {
       const fitsBelow = spaceBelow >= menuHeight + 20
       const fitsAbove = spaceAbove >= menuHeight + 20
       
+      // Determine target class logic without applying immediately
+      let targetClass = ''
+      
       if (!fitsBelow && !fitsAbove) {
         // Side opening logic if doesn't fit vertically
          if (isLeftSide && spaceRight >= menuWidth + 10) {
-            menuElement.classList.add('open-right')
+            targetClass = 'open-right'
             top = dayRect.top
             left = dayRect.right + 5
          } else if (isRightSide && spaceLeft >= menuWidth + 10) {
-            menuElement.classList.add('open-left')
+            targetClass = 'open-left'
             top = dayRect.top
             left = dayRect.left - menuWidth - 5
          } else if (fitsAbove) {
-            menuElement.classList.add('open-upward')
+            targetClass = 'open-upward'
             top = dayRect.top - menuHeight - 5
             left = dayRect.left + (dayRect.width / 2) - (menuWidth / 2)
          }
       } else if (!fitsBelow && fitsAbove) {
-         menuElement.classList.add('open-upward')
+         targetClass = 'open-upward'
          top = dayRect.top - menuHeight - 5
+      }
+
+      // Only update classes if changed to prevent animation restart
+      const currentClasses = Array.from(menuElement.classList)
+      const possibleClasses = ['open-upward', 'open-right', 'open-left']
+      const classesToRemove = possibleClasses.filter(c => c !== targetClass && currentClasses.includes(c))
+      
+      if (classesToRemove.length > 0) {
+        menuElement.classList.remove(...classesToRemove)
+      }
+      
+      if (targetClass && !currentClasses.includes(targetClass)) {
+        menuElement.classList.add(targetClass)
       }
 
       // Constrain horizontal
@@ -389,41 +405,11 @@ function CalendarView({ data, onUpdate }) {
 
       menuElement.style.top = `${top}px`
       menuElement.style.left = `${left}px`
-      // Clear transform that might interfere (except what's needed for animations)
-      // The CSS classes use transforms for animation, so we should let them be.
-      // But we need to override the CSS positioning which might expect parent-relative.
-      // The existing CSS for .event-menu has transform: translateX(-50%) by default.
-      // If we manually set left, we might fight with it.
-      // Let's adjust:
       
-      // If we are using fixed positioning calculated from rects, we should remove the default translateX(-50%)
-      // from CSS or account for it.
-      // The CSS has: transform: translateX(-50%); left: 50%;
-      // We are overriding left. We should reset transform if we want precise control.
-      // However, the animations use transforms.
-      
-      // Let's just use specific styles for this mode.
-      // Actually, simpler: just set CSS variables or modify styles directly.
-      
-      // If we don't use the CSS classes for positioning logic (open-right etc) but just for animation.
-      // The CSS classes also set positions (top/left/right).
-      // We should probably rely on JS for positioning since we moved it out of context.
-      
-      // Let's unset the CSS-driven positioning classes effects by overriding styles inline.
-      // We keep the classes for animation keyframes if they match.
-      
-      if (menuElement.classList.contains('open-right')) {
-         // open-right uses translateX(0)
-         menuElement.style.transform = 'none'
-      } else if (menuElement.classList.contains('open-left')) {
-         // open-left uses translateX(0)
+      if (targetClass === 'open-right' || targetClass === 'open-left') {
          menuElement.style.transform = 'none'
       } else {
-         // default and open-upward use translateX(-50%)
-         // But our `left` calculation centered it manually: left = dayRect.left + (dayRect.width / 2) - (menuWidth / 2)
-         // If we use that `left`, we want transform: none.
-         // But if we want to use the CSS animation which has translateX(-50%), we should set `left` to the center point.
-         // Let's set left to center point.
+         // default and open-upward
          left = dayRect.left + (dayRect.width / 2)
          menuElement.style.left = `${left}px`
       }
@@ -438,12 +424,19 @@ function CalendarView({ data, onUpdate }) {
       window.removeEventListener('resize', adjustMenuPosition)
       window.removeEventListener('scroll', adjustMenuPosition, true)
     }
-  }, [showEventMenu, calendarDays, isMobileView, menuAnchor])
+  }, [showEventMenu, calendarDays, isMobileView, menuAnchor, data])
 
   // Close menu when clicking outside or pressing Escape
   useEffect(() => {
     if (!showEventMenu) return
     
+    // Disable animations after initial open to prevent blinking on resize
+    const animTimer = setTimeout(() => {
+      if (menuRef.current) {
+        menuRef.current.classList.add('no-anim')
+      }
+    }, 300)
+
     const handleClickOutside = (e) => {
       if (!e.target.closest('.event-menu') && !e.target.closest('.calendar-day.selected')) {
         setShowEventMenu(null)
@@ -460,6 +453,7 @@ function CalendarView({ data, onUpdate }) {
     document.addEventListener('click', handleClickOutside)
     document.addEventListener('keydown', handleEscape)
     return () => {
+      clearTimeout(animTimer)
       document.removeEventListener('click', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
@@ -760,7 +754,12 @@ function CalendarView({ data, onUpdate }) {
         const showPlanButton = !isPastDay || isPlannedForDay
         
         return (
-          <div ref={menuRef} className="event-menu" onClick={(e) => e.stopPropagation()}>
+          <div 
+            key={showEventMenu instanceof Date ? showEventMenu.toISOString() : 'menu'}
+            ref={menuRef} 
+            className="event-menu" 
+            onClick={(e) => e.stopPropagation()}
+          >
             {eventList.length > 0 && (
               <>
                 <div className="menu-section">

@@ -540,6 +540,11 @@
   animation: fadeIn 0.2s ease-out;
 }
 
+.event-menu.no-anim {
+  animation: none !important;
+  transition: none !important;
+}
+
 .event-menu.mobile {
   position: fixed;
   top: 50% !important;
@@ -560,8 +565,9 @@
 }
 
 .event-menu.open-upward {
-  top: auto;
-  bottom: 100%;
+  /* Position handled by JS */
+  /* top: auto; */
+  /* bottom: 100%; */
   margin-top: 0;
   margin-bottom: 0.5rem;
   /* Animation adjusted for upward */
@@ -574,8 +580,9 @@
 }
 
 .event-menu.open-right {
-  top: 0;
-  left: 100%;
+  /* Position handled by JS */
+  /* top: 0; */
+  /* left: 100%; */
   transform: none;
   margin-left: 0.5rem;
   margin-top: 0;
@@ -588,9 +595,9 @@
 }
 
 .event-menu.open-left {
-  top: 0;
-  left: auto;
-  right: 100%;
+  /* Position handled by JS */
+  /* top: 0; */
+  /* right: 100%; */
   transform: none;
   margin-right: 0.5rem;
   margin-top: 0;
