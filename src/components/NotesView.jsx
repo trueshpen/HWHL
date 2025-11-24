@@ -1,34 +1,43 @@
 import { useState } from 'react'
 import { updateData } from '../utils/storage'
+import TagList from './TagList'
 import './NotesView.css'
 
 function NotesView({ data, onUpdate }) {
-  const [editingLikes, setEditingLikes] = useState(false)
-  const [editingDislikes, setEditingDislikes] = useState(false)
-  const [newLike, setNewLike] = useState('')
-  const [newDislike, setNewDislike] = useState('')
   const [newWishlistItem, setNewWishlistItem] = useState('')
   const [newGiftIdea, setNewGiftIdea] = useState('')
   const giftIdeas = data.giftIdeas || []
 
-  const handleAddLike = () => {
-    if (newLike.trim()) {
+  const handleAddLike = (text) => {
+    if (text.trim()) {
       const newData = updateData({
-        likes: [...data.likes, { id: Date.now(), text: newLike.trim() }]
+        likes: [...data.likes, { id: Date.now(), text: text.trim() }]
       })
       onUpdate(newData)
-      setNewLike('')
     }
   }
 
-  const handleAddDislike = () => {
-    if (newDislike.trim()) {
+  const handleAddDislike = (text) => {
+    if (text.trim()) {
       const newData = updateData({
-        dislikes: [...data.dislikes, { id: Date.now(), text: newDislike.trim() }]
+        dislikes: [...data.dislikes, { id: Date.now(), text: text.trim() }]
       })
       onUpdate(newData)
-      setNewDislike('')
     }
+  }
+
+  const handleUpdateLike = (id, text) => {
+    const newData = updateData({
+      likes: data.likes.map(l => l.id === id ? { ...l, text } : l)
+    })
+    onUpdate(newData)
+  }
+
+  const handleUpdateDislike = (id, text) => {
+    const newData = updateData({
+      dislikes: data.dislikes.map(d => d.id === id ? { ...d, text } : d)
+    })
+    onUpdate(newData)
   }
 
   const handleAddWishlistItem = () => {
@@ -103,86 +112,36 @@ function NotesView({ data, onUpdate }) {
         <div className="notes-section card">
           <div className="card-header">
             <h3>❤️ Likes</h3>
-            <button onClick={() => setEditingLikes(!editingLikes)}>
-              {editingLikes ? 'Done' : 'Edit'}
-            </button>
           </div>
           
-          {editingLikes && (
-            <div className="add-item-form">
-              <input
-                type="text"
-                value={newLike}
-                onChange={(e) => setNewLike(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddLike()}
-                placeholder="Add something she likes..."
-                className="add-input"
-              />
-              <button onClick={handleAddLike} className="btn-add">Add</button>
-            </div>
-          )}
-
           <div className="items-list">
-            {data.likes.length === 0 ? (
-              <p className="empty-state">No likes added yet. Click Edit to add.</p>
-            ) : (
-              data.likes.map(like => (
-                <div key={like.id} className="item">
-                  <span>{like.text}</span>
-                  {editingLikes && (
-                    <button
-                      className="delete-item-btn"
-                      onClick={() => handleDeleteLike(like.id)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+            <TagList
+              items={data.likes.map(l => ({ ...l, type: 'like' }))}
+              onAdd={handleAddLike}
+              onUpdate={handleUpdateLike}
+              onDelete={handleDeleteLike}
+              placeholder="Add like..."
+              defaultType="like"
+              allowTypeSelection={false}
+            />
           </div>
         </div>
 
         <div className="notes-section card">
           <div className="card-header">
             <h3>💔 Dislikes</h3>
-            <button onClick={() => setEditingDislikes(!editingDislikes)}>
-              {editingDislikes ? 'Done' : 'Edit'}
-            </button>
           </div>
           
-          {editingDislikes && (
-            <div className="add-item-form">
-              <input
-                type="text"
-                value={newDislike}
-                onChange={(e) => setNewDislike(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddDislike()}
-                placeholder="Add something she dislikes..."
-                className="add-input"
-              />
-              <button onClick={handleAddDislike} className="btn-add">Add</button>
-            </div>
-          )}
-
           <div className="items-list">
-            {data.dislikes.length === 0 ? (
-              <p className="empty-state">No dislikes added yet. Click Edit to add.</p>
-            ) : (
-              data.dislikes.map(dislike => (
-                <div key={dislike.id} className="item">
-                  <span>{dislike.text}</span>
-                  {editingDislikes && (
-                    <button
-                      className="delete-item-btn"
-                      onClick={() => handleDeleteDislike(dislike.id)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+            <TagList
+              items={data.dislikes.map(d => ({ ...d, type: 'dislike' }))}
+              onAdd={handleAddDislike}
+              onUpdate={handleUpdateDislike}
+              onDelete={handleDeleteDislike}
+              placeholder="Add dislike..."
+              defaultType="dislike"
+              allowTypeSelection={false}
+            />
           </div>
         </div>
       </div>

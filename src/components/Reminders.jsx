@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { format, isSameDay } from 'date-fns'
 import { updateData, saveData } from '../utils/storage'
+import TagList from './TagList'
 import {
   reminderTypes,
   getStatus,
@@ -189,6 +190,27 @@ function Reminders({ data, onUpdate, onExpandChange }) {
     onUpdate(newData)
     setNewNoteText('')
     setNewNoteType(type === 'general' ? 'love' : 'like')
+  }
+
+  const handleAddNoteDirectly = (type, text, noteType) => {
+    const reminder = data.reminders[type]
+    const existingNotes = reminder?.notes || []
+    const newNote = {
+      type: noteType,
+      text: text,
+      id: `note-${Date.now()}-${Math.random()}`
+    }
+    
+    const newData = updateData({
+      reminders: {
+        ...data.reminders,
+        [type]: {
+          ...reminder,
+          notes: [...existingNotes, newNote]
+        }
+      }
+    })
+    onUpdate(newData)
   }
 
   const handleRemoveNote = (type, noteId) => {
@@ -616,77 +638,15 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                     <div className="reminder-notes">
                       <div className="notes-header">
                         <h4>Notes</h4>
-                        <button 
-                          onClick={() => setEditingNotes(editingNotes === type ? null : type)}
-                          className="edit-notes-btn"
-                        >
-                          {editingNotes === type ? 'Done' : 'Edit'}
-                        </button>
                       </div>
-                      <div className="notes-list">
-                        {(reminder.notes || []).map(note => (
-                          <div key={note.id} className={`note-item ${note.type}`}>
-                            {editingNotes === type ? (
-                              <>
-                                <textarea
-                                  value={note.text}
-                                  onChange={(e) => handleUpdateNoteText(type, note.id, e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Escape') {
-                                      setEditingNotes(null)
-                                    } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey)) {
-                                      e.preventDefault()
-                                      setEditingNotes(null)
-                                    }
-                                  }}
-                                  className="note-input"
-                                  rows={3}
-                                />
-                                <button
-                                  onClick={() => handleRemoveNote(type, note.id)}
-                                  className="remove-note-btn"
-                                >
-                                  ×
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <span className="note-icon">
-                                  {note.type === 'like' ? '✓' : '×'}
-                                </span>
-                                <span className="note-text">{note.text}</span>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                        
-                        {editingNotes === type && (
-                          <div className="add-note-form">
-                            <select
-                              value={newNoteType}
-                              onChange={(e) => setNewNoteType(e.target.value)}
-                              className="note-type-select"
-                            >
-                              <option value="like">✓ Likes</option>
-                              <option value="dislike">× Dislikes</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={newNoteText}
-                              onChange={(e) => setNewNoteText(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && handleAddNote(type)}
-                              placeholder="Add note..."
-                              className="note-input"
-                            />
-                            <button
-                              onClick={() => handleAddNote(type)}
-                              className="add-note-btn"
-                            >
-                              Add
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      <TagList
+                        items={reminder.notes || []}
+                        onAdd={(text, noteType) => handleAddNoteDirectly(type, text, noteType)}
+                        onUpdate={(id, text) => handleUpdateNoteText(type, id, text)}
+                        onDelete={(id) => handleRemoveNote(type, id)}
+                        placeholder="Add flower preference..."
+                        allowTypeSelection={true}
+                      />
                     </div>
                   )}
 

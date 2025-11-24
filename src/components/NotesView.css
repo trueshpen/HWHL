@@ -21,13 +21,26 @@
   height: 100%;
 }
 
+.notes-section.card .card-header {
+  padding: 1.5rem 1.5rem 0.5rem 1.5rem; /* Increased padding for headers */
+}
+
 .add-item-form {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: var(--bg);
-  border-radius: 12px;
+  padding: 1.5rem; /* Match header padding */
+  background: transparent; /* Removed default background */
+  border-radius: 0;
+  margin-bottom: 0; /* Stick to wishlist items if needed */
+}
+
+.wishlist-section .add-item-form,
+.gift-ideas-section .add-item-form {
+  background: rgba(255, 107, 157, 0.1); /* Pinkish background for entire input area */
+  margin: 0 -1px; /* Pull to edges if card has border */
+  width: calc(100% + 2px); /* Compensate borders */
+  border-top: 1px solid rgba(255, 107, 157, 0.2);
+  border-bottom: 1px solid rgba(255, 107, 157, 0.2);
 }
 
 .add-input {
@@ -63,6 +76,7 @@
   flex-direction: column;
   gap: 0.75rem;
   flex: 1;
+  padding: 1rem; /* Added padding to move tags away from edges */
 }
 
 .item {
@@ -125,10 +139,12 @@
   gap: 0.75rem;
   flex: 1;
   min-height: 4rem;
+  padding: 1.5rem; /* Padding for list items container */
 }
 
 .gift-ideas-list {
   min-height: 4rem;
+  padding: 1.5rem; /* Padding for list items container */
 }
 
 .wishlist-item {
