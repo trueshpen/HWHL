@@ -24,6 +24,8 @@ HWHL/
 │   │   ├── PersonalizationView.css
 │   │   ├── Reminders.jsx
 │   │   ├── Reminders.css
+│   │   ├── TagList.jsx
+│   │   ├── TagList.css
 │   │   ├── TodayReminders.jsx
 │   │   └── TodayReminders.css
 │   ├── utils/             # Utility functions
@@ -69,9 +71,11 @@ App
 │   └── TodayReminders
 ├── PersonalizationView
 │   ├── Reminders
+│   │   └── TagList
 │   ├── CycleTracker
 │   └── ImportantDates
 └── NotesView
+    └── TagList
 ```
 
 ### Components
@@ -183,7 +187,7 @@ App
   - Customizable frequency
   - Status tracking (due, pending, ok, planned, planned-today, planned-overdue)
   - Event history tracking
-  - Notes for reminders (likes/dislikes, love notes)
+  - Notes for reminders (likes/dislikes, love notes) - uses TagList component
   - Expand/collapse functionality with state tracking
   - **Planned date night functionality** (for dateNights type):
     - Plan specific date nights in advance
@@ -197,19 +201,60 @@ App
   - `handleClearPlannedDate()` - Clear planned date
   - `handleStartPlanning()` - Initialize planning mode
   - `handleCancelPlanning()` - Cancel planning mode
+  - `handleAddNoteDirectly()` - Add note to reminder
+  - `handleUpdateNoteText()` - Update note text
+  - `handleRemoveNote()` - Remove note from reminder
   - `handleExpandChange()` - Handle expand/collapse state changes
 
 #### NotesView.jsx
-- **Purpose**: Manage likes, dislikes, and wishlist
+- **Purpose**: Manage likes, dislikes, wishlist, and gift ideas
 - **Props**: `data`, `onUpdate`
-- **State**: Application data
+- **State**: Application data, newWishlistItem, newGiftIdea
 - **Features**:
-  - Likes list (things she loves)
-  - Dislikes list (things to avoid)
+  - Likes list (things she loves) - uses TagList component
+  - Dislikes list (things to avoid) - uses TagList component
   - Wishlist with done/undone tracking
+  - Gift ideas list with done/undone tracking
 - **Key Functions**:
-  - `handleAddLike/Dislike()` - Add items to lists
-  - `handleToggleWishlistItem()` - Mark wishlist items as done
+  - `handleAddLike()` - Add item to likes list
+  - `handleAddDislike()` - Add item to dislikes list
+  - `handleUpdateLike()` - Update item in likes list
+  - `handleUpdateDislike()` - Update item in dislikes list
+  - `handleDeleteLike()` - Delete item from likes list
+  - `handleDeleteDislike()` - Delete item from dislikes list
+  - `handleAddWishlistItem()` - Add item to wishlist
+  - `handleDeleteWishlistItem()` - Delete item from wishlist
+  - `handleToggleWishlistItem()` - Toggle done/undone status of wishlist item
+  - `handleAddGiftIdea()` - Add item to gift ideas list
+  - `handleDeleteGiftIdea()` - Delete item from gift ideas list
+  - `handleToggleGiftIdea()` - Toggle done/undone status of gift idea
+
+#### TagList.jsx
+- **Purpose**: Reusable component for managing tag-like lists (likes, dislikes, notes)
+- **Props**: 
+  - `items` - Array of items with `{ id, text, type }` structure
+  - `onAdd` - Callback when new item is added `(text, type) => void`
+  - `onUpdate` - Callback when item is updated `(id, text) => void`
+  - `onDelete` - Callback when item is deleted `(id) => void`
+  - `placeholder` - Placeholder text for add input (default: "Add item...")
+  - `defaultType` - Default type for new items (default: "like")
+  - `allowTypeSelection` - Whether to show type selector (default: true)
+- **State**: Active tag, editing state, adding state, input values
+- **Features**:
+  - Click to activate tag (shows edit/delete buttons)
+  - Edit tag text inline
+  - Delete tags
+  - Add new tags with type selection (like/dislike)
+  - Keyboard shortcuts (Enter to save, Escape to cancel)
+  - Auto-sorting: likes first, then dislikes
+  - Visual distinction between like/dislike types
+- **Key Functions**:
+  - `handleTagClick()` - Activate tag to show actions
+  - `handleEditClick()` - Start editing tag text
+  - `handleDeleteClick()` - Delete tag
+  - `handleSaveClick()` - Save edited tag
+  - `handleAddSubmit()` - Add new tag
+- **Used In**: NotesView (likes/dislikes), Reminders (notes)
 
 #### PersonalizationView.jsx
 - **Purpose**: Combined view for personalization settings (reminders, cycle, important dates)
@@ -308,12 +353,18 @@ App
 #### constants.js
 - **Purpose**: Application constants and phase definitions
 - **Exports**:
-  - `PHASES` - Cycle phase definitions (period, post-period, ovulation, wild-breeze, pre-period)
+  - `PHASES` - Cycle phase definitions:
+    - `period` (Moon Days): Days 1-5
+    - `post-period` (Fresh Start): Days 6-9
+    - `ovulation` (Shining Peak): Days 10-15
+    - `wild-breeze` (Wild Breeze): Days 16-20
+    - `pre-period` (Wind Down): Days 21-28+
   - `DEFAULT_CYCLE_LENGTH` - Default cycle length (28 days)
   - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days, 5 days total including start and end)
   - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (9 days)
   - `MAX_CYCLE_LENGTH_DAYS` - Maximum valid cycle length for validation (50 days)
   - `getPhaseFromCycleDayWithLength()` - Phase calculation function with custom cycle length
+    - Returns phase based on cycle day: period (1-5), post-period (6-9), ovulation (10-15), wild-breeze (16-20), pre-period (21+)
 
 ## Backend Architecture
 
@@ -375,6 +426,7 @@ App
   likes: [{ id: number, text: string }],
   dislikes: [{ id: number, text: string }],
   wishlist: [{ id: number, text: string, done: boolean }],
+  giftIdeas: [{ id: number, text: string, done: boolean }],
   reminders: {
     flowers: {
       enabled: boolean,
@@ -399,8 +451,7 @@ App
       events: ['YYYY-MM-DD'], 
       notes: [{ type: 'love', text: string, id: string }] 
     }
-  },
-  preferredGifts: []
+  }
 }
 ```
 
