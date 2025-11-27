@@ -2,6 +2,8 @@ import express from 'express'
 import fs from 'fs'
 import path from 'path'
 import https from 'https'
+import http from 'http'
+import selfsigned from 'selfsigned'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -133,32 +135,66 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+const CERT_ATTRIBUTES = [{ name: 'commonName', value: 'localhost' }]
+const CERT_OPTIONS = {
+  algorithm: 'sha256',
+  days: 825,
+  keySize: 2048,
+  extensions: [
+    { name: 'basicConstraints', cA: false },
+    { name: 'keyUsage', digitalSignature: true, keyEncipherment: true },
+    { name: 'extKeyUsage', serverAuth: true, clientAuth: true },
+    {
+      name: 'subjectAltName',
+      altNames: [
+        { type: 2, value: 'localhost' },
+        { type: 7, ip: '127.0.0.1' }
+      ]
+    }
+  ]
+}
+
 const ensureCertificates = () => {
-  const hasKey = fs.existsSync(KEY_PATH)
-  const hasCert = fs.existsSync(CERT_PATH)
+  try {
+    const hasKey = fs.existsSync(KEY_PATH)
+    const hasCert = fs.existsSync(CERT_PATH)
 
-  if (!hasKey || !hasCert) {
-    console.error('\n⚠️  HTTPS certificates not found.')
-    console.error('Expected files:')
-    console.error(`  Key : ${KEY_PATH}`)
-    console.error(`  Cert: ${CERT_PATH}`)
-    console.error('\nRun "npm run generate-cert" to create them, then trust the certificate locally.')
-    process.exit(1)
-  }
+    if (!hasKey || !hasCert) {
+      console.warn('\n⚠️  HTTPS certificates not found. Generating new self-signed certificates...')
+      fs.mkdirSync(CERT_DIR, { recursive: true })
+      const pems = selfsigned.generate(CERT_ATTRIBUTES, CERT_OPTIONS)
+      fs.writeFileSync(KEY_PATH, pems.private, { encoding: 'utf-8' })
+      fs.writeFileSync(CERT_PATH, pems.cert, { encoding: 'utf-8' })
+      console.warn(`Certificates saved to:\n  Key : ${KEY_PATH}\n  Cert: ${CERT_PATH}\n`)
+    }
 
-  return {
-    key: fs.readFileSync(KEY_PATH),
-    cert: fs.readFileSync(CERT_PATH),
+    return {
+      key: fs.readFileSync(KEY_PATH),
+      cert: fs.readFileSync(CERT_PATH)
+    }
+  } catch (error) {
+    console.error('\n❌ Failed to prepare HTTPS certificates:', error)
+    return null
   }
 }
 
 const credentials = ensureCertificates()
 
-https.createServer(credentials, app).listen(PORT, () => {
-  console.log(`\n========================================`)
-  console.log(`  HTTPS API Server running on https://localhost:${PORT}`)
-  console.log(`  Data file: ${DATA_FILE}`)
-  console.log(`  Cert dir : ${CERT_DIR}`)
-  console.log(`========================================\n`)
-})
+if (credentials) {
+  https.createServer(credentials, app).listen(PORT, () => {
+    console.log(`\n========================================`)
+    console.log(`  HTTPS API Server running on https://localhost:${PORT}`)
+    console.log(`  Data file: ${DATA_FILE}`)
+    console.log(`  Cert dir : ${CERT_DIR}`)
+    console.log(`========================================\n`)
+  })
+} else {
+  http.createServer(app).listen(PORT, () => {
+    console.log(`\n========================================`)
+    console.log(`  HTTP API Server running on http://localhost:${PORT}`)
+    console.log(`  Data file: ${DATA_FILE}`)
+    console.log(`  (HTTPS certificate generation failed, running HTTP fallback)`)
+    console.log(`========================================\n`)
+  })
+}
 

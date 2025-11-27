@@ -120,9 +120,17 @@ App
 - **Purpose**: Main calendar interface with event management
 - **Props**: `data`, `onUpdate`
 - **State**: 
-  - Current month view
-  - Event menu visibility
-  - Expanded sections state (cycle, importantDates, reminders)
+  - `currentDate` - Current month view
+  - `showEventMenu` - Event menu visibility (date for which to show menu)
+  - `menuAnchor` - Element that triggered the menu
+  - `expandedSections` - Expanded sections state (cycle, importantDates, reminders)
+  - `isMobileView` - Mobile view detection
+  - `todayTotals` - Count of today's reminders/events
+  - `todayCardPosition` - Position of today's card ('top' or 'bottom')
+- **Refs**:
+  - `menuRef` - Reference for dynamic menu positioning
+  - `todayCountRef` - Reference for tracking today's count
+  - `todaySlideTimeoutRef` - Reference for slide animation timeout
 - **Features**:
   - Monthly calendar grid showing full weeks (includes days from previous/next month)
   - Cycle period visualization
@@ -144,8 +152,12 @@ App
   - `isPeriodStart/End()` - Check if date is period start/end
   - `handleSectionExpand()` - Track expand/collapse state of sidebar sections
   - `adjustMenuPosition()` - Dynamically position event menu based on viewport
+- **Helper Functions**:
+  - `addPlannedDateToList()` - Add planned date to list (sorted, no duplicates)
+  - `filterPlannedDatesAfterDate()` - Filter planned dates after a cutoff date
+  - `removePlannedDateFromList()` - Remove planned date from list
 - **Constants**:
-  - `REMINDER_SEGMENT_TYPES` - Array of reminder types for calendar segments
+  - `REMINDER_SEGMENT_TYPES` - Array of reminder types for calendar segments: ['flowers', 'surprises', 'general', 'dateNights']
 
 #### CycleTracker.jsx
 - **Purpose**: Display and manage cycle information
@@ -239,21 +251,24 @@ App
   - `placeholder` - Placeholder text for add input (default: "Add item...")
   - `defaultType` - Default type for new items (default: "like")
   - `allowTypeSelection` - Whether to show type selector (default: true)
-- **State**: Active tag, editing state, adding state, input values
+- **State**: `editingTagId`, `editText`, `isAdding`, `newTagText`, `newTagType`
 - **Features**:
-  - Click to activate tag (shows edit/delete buttons)
-  - Edit tag text inline
-  - Delete tags
+  - Click on tag text to start editing inline
+  - Edit tag text inline with auto-focus and text selection
+  - Delete tags with remove button (×)
   - Add new tags with type selection (like/dislike)
   - Keyboard shortcuts (Enter to save, Escape to cancel)
+  - Auto-commit on blur (when clicking outside)
+  - Click outside add form to submit
   - Auto-sorting: likes first, then dislikes
   - Visual distinction between like/dislike types
 - **Key Functions**:
-  - `handleTagClick()` - Activate tag to show actions
-  - `handleEditClick()` - Start editing tag text
+  - `beginEditing()` - Start editing tag text (click handler)
+  - `commitEdit()` - Save edited tag (on blur or Enter)
+  - `cancelEdit()` - Cancel editing (on Escape)
   - `handleDeleteClick()` - Delete tag
-  - `handleSaveClick()` - Save edited tag
-  - `handleAddSubmit()` - Add new tag
+  - `handleAddSubmit()` - Add new tag (Enter or click outside)
+  - `handleAddCancel()` - Cancel adding new tag (Escape or × button)
 - **Used In**: NotesView (likes/dislikes), Reminders (notes)
 
 #### PersonalizationView.jsx
@@ -287,6 +302,7 @@ App
 - **Constants**:
   - `STORAGE_KEY` - localStorage key for app data (`'wife-happiness-app-data'`)
   - `API_BASE_URL` - Server API base URL (`'https://localhost:3000/api'`)
+  - `defaultData` - Default data structure with empty arrays and default values
 - **Key Functions**:
   - `loadData()` - Async load from server (primary) or localStorage (fallback)
   - `loadDataSync()` - Synchronous load from localStorage

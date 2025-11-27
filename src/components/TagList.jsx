@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './TagList.css'
 
 function TagList({ items, onAdd, onUpdate, onDelete, placeholder = "Add item...", defaultType = "like", allowTypeSelection = true }) {
-  const [activeTagId, setActiveTagId] = useState(null)
   const [editingTagId, setEditingTagId] = useState(null)
   const [editText, setEditText] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -10,6 +9,7 @@ function TagList({ items, onAdd, onUpdate, onDelete, placeholder = "Add item..."
   const [newTagType, setNewTagType] = useState(defaultType)
   const inputRef = useRef(null)
   const newTagInputRef = useRef(null)
+  const addFormRef = useRef(null)
 
   // Sort items: likes first, then dislikes
   const sortedItems = [...items].sort((a, b) => {
@@ -20,6 +20,7 @@ function TagList({ items, onAdd, onUpdate, onDelete, placeholder = "Add item..."
   useEffect(() => {
     if (editingTagId && inputRef.current) {
       inputRef.current.focus()
+      inputRef.current.select()
     }
   }, [editingTagId])
 
@@ -29,127 +30,154 @@ function TagList({ items, onAdd, onUpdate, onDelete, placeholder = "Add item..."
     }
   }, [isAdding])
 
-  const handleTagClick = (item) => {
-    if (activeTagId === item.id) return
-    setActiveTagId(item.id)
-    setEditingTagId(null)
-  }
-
-  const handleEditClick = (item, e) => {
-    e.stopPropagation()
+  const beginEditing = (item) => {
+    if (editingTagId === item.id) return
     setEditingTagId(item.id)
     setEditText(item.text)
   }
 
-  const handleDeleteClick = (item, e) => {
-    e.stopPropagation()
-    onDelete(item.id)
-    setActiveTagId(null)
-  }
-
-  const handleSaveClick = (item, e) => {
-    e.stopPropagation()
-    if (editingTagId === item.id) {
-      if (editText.trim()) {
-        onUpdate(item.id, editText.trim())
-      }
-      setEditingTagId(null)
+  const commitEdit = () => {
+    if (!editingTagId) return
+    const target = items.find(i => i.id === editingTagId)
+    const trimmed = editText.trim()
+    if (target && trimmed && trimmed !== target.text) {
+      onUpdate(editingTagId, trimmed)
     }
-    setActiveTagId(null)
-  }
-
-  const handleCancelClick = (e) => {
-    e.stopPropagation()
-    setActiveTagId(null)
     setEditingTagId(null)
+    setEditText('')
   }
 
-  const handleAddSubmit = () => {
-    if (newTagText.trim()) {
-      onAdd(newTagText.trim(), newTagType)
-      setNewTagText('')
-      // Keep adding mode open or close? Usually nice to add multiple.
-      // But user requirement: "po kliknuti musi ... objevit 3 moznosti".
-      // For adding, we probably just want to add and maybe stay or close.
-      // Let's reset text but keep adding if they want, or maybe close. 
-      // Let's close for now to be safe.
-      setIsAdding(false)
-    } else {
-        setIsAdding(false)
+  const cancelEdit = () => {
+    setEditingTagId(null)
+    setEditText('')
+  }
+
+  const handleDeleteClick = (item) => {
+    onDelete(item.id)
+    if (editingTagId === item.id) {
+      cancelEdit()
     }
   }
+
+  const handleAddSubmit = useCallback(() => {
+    if (!isAdding) return
+    const trimmed = newTagText.trim()
+    if (trimmed) {
+      const typeToUse = allowTypeSelection ? newTagType : defaultType
+      onAdd(trimmed, typeToUse)
+    }
+    setNewTagText('')
+    setIsAdding(false)
+  }, [isAdding, newTagText, allowTypeSelection, newTagType, defaultType, onAdd])
+
+  const handleAddCancel = useCallback(() => {
+    setIsAdding(false)
+    setNewTagText('')
+  }, [])
+
+  useEffect(() => {
+    if (!isAdding) return
+    const handleClickOutside = (event) => {
+      if (addFormRef.current && !addFormRef.current.contains(event.target)) {
+        handleAddSubmit()
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [isAdding, handleAddSubmit])
 
   return (
     <div className="tag-list">
       {sortedItems.map(item => (
         <div 
           key={item.id} 
-          className={`tag-item ${item.type || 'neutral'} ${activeTagId === item.id ? 'active' : ''}`}
-          onClick={() => handleTagClick(item)}
+          className={`tag-item ${item.type || 'neutral'} ${editingTagId === item.id ? 'editing' : ''}`}
         >
-          {activeTagId === item.id ? (
-            <div className="tag-actions-overlay">
-              {editingTagId === item.id ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveClick(item, e)
-                    if (e.key === 'Escape') setEditingTagId(null)
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="tag-edit-input"
-                />
-              ) : (
-                <div className="tag-actions-buttons">
-                  <button className="action-btn edit" onClick={(e) => handleEditClick(item, e)} title="Edit">
-                    ✏️
-                  </button>
-                  <button className="action-btn delete" onClick={(e) => handleDeleteClick(item, e)} title="Delete">
-                    ❌
-                  </button>
-                </div>
-              )}
-              <button className="action-btn save" onClick={(e) => handleSaveClick(item, e)} title="Save/Exit">
-                ✅
-              </button>
+          {editingTagId === item.id ? (
+            <div className="tag-edit-wrapper">
+              <span className="tag-measure-span">{editText}</span>
+              <input
+                ref={inputRef}
+                type="text"
+                size={1}
+                className="tag-inline-input"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onBlur={commitEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    commitEdit()
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                    cancelEdit()
+                  }
+                }}
+              />
             </div>
           ) : (
-            <span className="tag-text">{item.text}</span>
+            <span 
+              className="tag-text" 
+              onClick={() => beginEditing(item)}
+            >
+              {item.text}
+            </span>
           )}
+          <button
+            className="tag-remove-btn"
+            title="Remove"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleDeleteClick(item)}
+          >
+            ×
+          </button>
         </div>
       ))}
 
       {/* Add Button / Form */}
       {isAdding ? (
-        <div className={`tag-item add-form ${newTagType}`}>
-           {allowTypeSelection && (
-             <select 
+        <div ref={addFormRef} className={`tag-item add-form ${newTagType}`}>
+          {allowTypeSelection && (
+            <select 
               value={newTagType} 
               onChange={(e) => setNewTagType(e.target.value)}
               className="type-select"
-              onClick={(e) => e.stopPropagation()}
-             >
-               <option value="like">Like</option>
-               <option value="dislike">Dislike</option>
-             </select>
-           )}
-           <input
-             ref={newTagInputRef}
-             type="text"
-             value={newTagText}
-             onChange={(e) => setNewTagText(e.target.value)}
-             onKeyDown={(e) => {
-               if (e.key === 'Enter') handleAddSubmit()
-               if (e.key === 'Escape') setIsAdding(false)
-             }}
-             placeholder="Tag name..."
-             className="tag-add-input"
-           />
-           <button onClick={handleAddSubmit} className="action-btn save">✅</button>
-           <button onClick={() => setIsAdding(false)} className="action-btn cancel">❌</button>
+            >
+              <option value="like">Like</option>
+              <option value="dislike">Dislike</option>
+            </select>
+          )}
+          <input
+            ref={newTagInputRef}
+            type="text"
+            value={newTagText}
+            onChange={(e) => setNewTagText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddSubmit()
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                handleAddCancel()
+              }
+            }}
+            placeholder={placeholder}
+            className="tag-add-input"
+          />
+          <button
+            className="tag-remove-btn add-cancel"
+            title="Cancel"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleAddCancel}
+          >
+            ×
+          </button>
         </div>
       ) : (
         <button className="tag-item add-btn" onClick={() => setIsAdding(true)}>

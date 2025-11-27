@@ -106,31 +106,42 @@ export const isInPastPeriod = (date, periods) => {
  */
 export const isInFuturePeriod = (date, expectedNextStart, cycleLength) => {
   if (!expectedNextStart || !cycleLength) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+
+  const normalizedCycle = Math.max(1, cycleLength)
   const checkDate = new Date(date)
   checkDate.setHours(0, 0, 0, 0)
-  
-  // Calculate all future period starts (up to 12 months ahead)
-  const futurePeriods = []
-  let currentStart = new Date(expectedNextStart)
-  const maxDate = addDays(today, 365) // Look up to 1 year ahead
-  
-  while (currentStart <= maxDate) {
-    const periodEnd = addDays(currentStart, DEFAULT_PERIOD_DURATION_DAYS)
-    futurePeriods.push({
-      start: new Date(currentStart),
-      end: periodEnd
-    })
-    // Move to next cycle
-    currentStart = addDays(currentStart, cycleLength)
+
+  const baseStart = new Date(expectedNextStart)
+  if (Number.isNaN(baseStart.getTime())) return false
+  baseStart.setHours(0, 0, 0, 0)
+
+  const diffDays = differenceInDays(checkDate, baseStart)
+  let cyclesOffset = Math.floor(diffDays / normalizedCycle)
+
+  let candidateStart = addDays(baseStart, cyclesOffset * normalizedCycle)
+  candidateStart.setHours(0, 0, 0, 0)
+
+  if (checkDate < candidateStart) {
+    candidateStart = addDays(candidateStart, -normalizedCycle)
+    candidateStart.setHours(0, 0, 0, 0)
   }
-  
-  // Check if date falls within any future period
-  return futurePeriods.some(period => {
-    period.start.setHours(0, 0, 0, 0)
-    period.end.setHours(23, 59, 59, 999)
-    return checkDate >= period.start && checkDate <= period.end && period.start > today
-  })
+
+  const isWithinWindow = (start) => {
+    const end = addDays(new Date(start), DEFAULT_PERIOD_DURATION_DAYS)
+    end.setHours(23, 59, 59, 999)
+    return checkDate >= start && checkDate <= end
+  }
+
+  if (isWithinWindow(candidateStart)) {
+    return true
+  }
+
+  const nextStart = addDays(candidateStart, normalizedCycle)
+  nextStart.setHours(0, 0, 0, 0)
+  if (isWithinWindow(nextStart)) {
+    return true
+  }
+
+  return false
 }
 

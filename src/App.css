@@ -3,6 +3,7 @@
   --layout-padding-desktop: 2rem;
   --layout-padding-mobile: 1rem;
   --bottom-nav-height: 60px;
+  --header-height: 60px;
 }
 
 .app {
@@ -10,6 +11,7 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  padding-top: var(--header-height); /* Compensate for fixed header */
 }
 
 .app-header {
@@ -17,13 +19,16 @@
   padding: 0.5rem 1.5rem;
   box-shadow: 0 2px 10px var(--shadow);
   border-bottom: 2px solid var(--border);
-  position: sticky;
+  position: fixed; /* Fixed position for "frozen" behavior */
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 50px;
+  height: var(--header-height);
   z-index: 100;
 }
 
@@ -197,7 +202,7 @@
   justify-content: space-around;
   padding: 0.5rem;
   height: var(--bottom-nav-height);
-  z-index: 100;
+  z-index: 1000; /* Higher z-index for bottom nav too */
   box-shadow: 0 -2px 10px var(--shadow);
 }
 

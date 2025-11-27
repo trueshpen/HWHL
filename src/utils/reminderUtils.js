@@ -1,4 +1,4 @@
-import { format, differenceInDays, isSameDay } from 'date-fns'
+import { format, differenceInDays, isSameDay, addHours } from 'date-fns'
 
 const normalizeDateOnly = (dateStr) => {
   if (!dateStr) return null
@@ -12,6 +12,36 @@ export const reminderTypes = {
   surprises: { emoji: '🎁', label: 'Small Surprises', defaultFrequency: 2, color: '#fdcb6e' },
   dateNights: { emoji: '💑', label: 'Date Nights', defaultFrequency: 7, color: '#c44569' },
   general: { emoji: '💕', label: 'Show love', defaultFrequency: 1, color: '#f8b5c0' }
+}
+
+const GENERAL_COOLDOWN_HOURS = 2
+const QUIET_HOURS_START = 21 // 21:00
+const QUIET_HOURS_END = 6 // 06:00
+
+const isBeforeMorningWindow = (date) => date.getHours() < QUIET_HOURS_END
+
+const adjustToAllowedReminderTime = (date) => {
+  const adjusted = new Date(date)
+  const hour = adjusted.getHours()
+  if (hour >= QUIET_HOURS_START) {
+    adjusted.setDate(adjusted.getDate() + 1)
+    adjusted.setHours(QUIET_HOURS_END, 0, 0, 0)
+  } else if (hour < QUIET_HOURS_END) {
+    adjusted.setHours(QUIET_HOURS_END, 0, 0, 0)
+  }
+  return adjusted
+}
+
+const getNextGeneralReminderTime = (reminder) => {
+  if (!reminder?.lastDone) return null
+  const lastDone = new Date(reminder.lastDone)
+  if (Number.isNaN(lastDone.getTime())) return null
+  const base = addHours(lastDone, GENERAL_COOLDOWN_HOURS)
+  const hour = base.getHours()
+  if (hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END) {
+    return adjustToAllowedReminderTime(base)
+  }
+  return base
 }
 
 export const getReminderEvents = (reminder) => reminder?.events || []
@@ -180,8 +210,22 @@ export const isReminderDoneToday = (reminder) => {
 
 export const shouldShowTodayReminder = (reminder, type) => {
   if (!reminder || !reminder.enabled) return false
-  const today = new Date()
+  const now = new Date()
+  const today = new Date(now)
   today.setHours(0, 0, 0, 0)
+
+  if (type === 'general') {
+    const nextGeneralTime = getNextGeneralReminderTime(reminder)
+    if (!nextGeneralTime) {
+      return true
+    }
+    return now >= nextGeneralTime
+  }
+
+  if (isBeforeMorningWindow(now)) {
+    return false
+  }
+
   if (type === 'dateNights') {
     const nextPlannedDate = getNextPlannedDate(reminder)
     if (nextPlannedDate) {
@@ -191,9 +235,7 @@ export const shouldShowTodayReminder = (reminder, type) => {
       }
     }
   }
-  if (type === 'general') {
-    return !isReminderDoneToday(reminder)
-  }
+
   const status = getStatus(reminder, type)
   return status.status === 'due' || status.isDueToday
 }

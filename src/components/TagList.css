@@ -3,33 +3,40 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  width: 100%;
 }
 
 .tag-item {
-  padding: 6px 12px;
-  border-radius: 16px;
+  padding: 4px 8px;
+  border-radius: 12px;
   font-size: 14px;
-  cursor: pointer;
-  position: relative;
+  cursor: text;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 32px;
   user-select: none;
+  width: auto;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+
+.tag-item.editing {
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+  background-color: #fff;
 }
 
 .tag-item.like {
   background-color: #e6f4ea;
   color: #1e7e34;
   border: 1px solid #c3e6cb;
-  border-radius: 6px; /* Square-ish for likes */
 }
 
 .tag-item.dislike {
   background-color: #fbe9eb;
   color: #dc3545;
   border: 1px solid #f5c6cb;
-  border-radius: 6px; /* Square-ish for dislikes to match likes */
 }
 
 .tag-item.neutral {
@@ -50,6 +57,7 @@
   font-weight: bold;
   font-size: 20px;
   border-radius: 8px; /* Slightly rounded rectangle */
+  cursor: pointer;
 }
 
 .tag-item.add-btn:hover {
@@ -60,11 +68,15 @@
 
 .tag-item.add-form {
   padding: 4px 8px;
-  gap: 4px;
+  gap: 6px;
   background-color: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   z-index: 10;
   border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .tag-item.add-form.like {
@@ -75,61 +87,77 @@
   border: 1px solid #dc3545;
 }
 
-/* Active State */
-.tag-item.active {
-  padding: 2px 6px; /* Slightly reduced padding to accommodate buttons */
-  cursor: default;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  background-color: white; /* Ensure readability when active */
-  border-color: #ccc;
-}
-
-.tag-actions-overlay {
-  display: flex;
+.tag-edit-wrapper {
+  display: inline-grid;
   align-items: center;
-  gap: 4px;
-  width: 100%;
-  height: 100%;
-  justify-content: space-between;
+  vertical-align: middle;
 }
 
-.tag-actions-buttons {
-  display: flex;
-  gap: 2px;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+.tag-measure-span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  white-space: pre;
   font-size: 14px;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  font-family: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  padding-right: 8px;
+  min-width: 0;
+  pointer-events: none;
 }
 
-.action-btn:hover {
-  background-color: rgba(0,0,0,0.05);
-}
-
-.action-btn.edit:hover { color: #007bff; }
-.action-btn.delete:hover { color: #dc3545; }
-.action-btn.save:hover { color: #28a745; }
-.action-btn.cancel:hover { color: #6c757d; }
-
-.tag-edit-input {
+.tag-inline-input {
   border: none;
   background: transparent;
   font-size: 14px;
+  font-family: inherit;
+  letter-spacing: inherit;
   color: inherit;
   outline: none;
-  width: 100px;
-  padding: 0 4px;
+  min-width: 0;
+  width: 100% !important;
+  flex: 0 1 auto;
+  white-space: nowrap;
+  grid-area: 1 / 1;
+  padding: 0;
+  margin: 0;
+}
+
+.tag-inline-input:read-only {
+  cursor: text;
+}
+
+.tag-inline-input:not(:read-only) {
   border-bottom: 1px dashed currentColor;
+}
+
+.tag-text {
+  font-size: 14px;
+  color: inherit;
+  white-space: nowrap;
+  cursor: text;
+  min-width: 20px;
+  display: inline-block;
+}
+
+.tag-remove-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.tag-remove-btn:hover {
+  opacity: 1;
+}
+
+.tag-remove-btn.add-cancel {
+  font-size: 16px;
+  padding: 0 4px;
 }
 
 .tag-add-input {
@@ -137,8 +165,9 @@
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 14px;
-  width: 120px;
+  width: 180px;
   outline: none;
+  flex: 0 1 auto;
 }
 
 .tag-add-input:focus {
@@ -157,19 +186,16 @@
 
 /* Mobile Specifics */
 @media (max-width: 768px) {
-  .tag-item.active {
-    transform: scale(1.1);
-    transform-origin: center;
+  .tag-item {
+    max-width: 100%;
   }
-  
+
   .tag-item.add-form {
-    position: fixed; /* Pop out on mobile for easier typing */
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    justify-content: center;
-    padding: 12px;
+    position: static;
+    width: 100%;
+    max-width: none;
+    flex-wrap: nowrap;
+    padding: 8px 10px;
   }
   
   .tag-add-input {

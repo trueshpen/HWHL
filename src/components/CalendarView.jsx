@@ -887,9 +887,9 @@ function CalendarView({ data, onUpdate }) {
               const isCurrentMonth = isSameMonth(day, currentDate)
               const events = getEventsForDate(day)
               const inPastPeriod = checkInPastPeriod(day)
-              const inFuturePeriod = checkInFuturePeriod(day)
-              const cycleDay = getCycleDayForDate(day)
               const periodStart = isPeriodStart(day)
+              const inFuturePeriod = !inPastPeriod && checkInFuturePeriod(day)
+              const cycleDay = getCycleDayForDate(day)
               const periodEnd = isPeriodEnd(day)
               const dayStr = format(day, 'yyyy-MM-dd')
               const reminderSegmentState = REMINDER_SEGMENT_TYPES.reduce((acc, type) => {
