@@ -10,6 +10,7 @@ export const PHASES = {
 // Cycle constants
 export const DEFAULT_CYCLE_LENGTH = 28
 export const DEFAULT_PERIOD_DURATION_DAYS = 4 // 5 days total including start and end
+export const MAX_PERIOD_LENGTH_DAYS = 12 // Maximum difference (in days) between period start and end
 export const PERIOD_NOTIFICATION_DAYS_BEFORE = 9
 export const MAX_CYCLE_LENGTH_DAYS = 50 // Reasonable upper bound for cycle length validation
 

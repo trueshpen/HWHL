@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth, differenceInDays } from 'date-fns'
 import { updateData, calculateAverageCycleLength, calculateNextExpectedStart } from '../utils/storage'
 import { PHASES, getPhaseFromCycleDayWithLength, DEFAULT_PERIOD_DURATION_DAYS, PERIOD_NOTIFICATION_DAYS_BEFORE } from '../utils/constants'
 import { reminderTypes } from '../utils/reminderUtils'
-import { getCycleDay, isInPastPeriod, isInFuturePeriod } from '../utils/cycleUtils'
+import { getCycleDay, isInPastPeriod, isInFuturePeriod, getAveragePeriodDurationOffset } from '../utils/cycleUtils'
 import CycleTracker from './CycleTracker'
 import ImportantDates from './ImportantDates'
 import Reminders from './Reminders'
@@ -33,6 +33,8 @@ const removePlannedDateFromList = (dates = [], targetStr) => {
   if (!targetStr) return dates
   return dates.filter(date => date !== targetStr)
 }
+
+const PERIOD_START_SHIFT_TOLERANCE_DAYS = 3
 
 function CalendarView({ data, onUpdate }) {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -127,9 +129,24 @@ function CalendarView({ data, onUpdate }) {
   const numberOfWeeks = Math.ceil(calendarDays.length / 7)
 
   // Wrapper functions to use shared utilities with current data
-  const checkInPastPeriod = (date) => isInPastPeriod(date, data.cycle.periods)
-  const checkInFuturePeriod = (date) => isInFuturePeriod(date, data.cycle.expectedNextStart, data.cycle.cycleLength)
+  const cyclePeriods = data.cycle.periods || []
+  const averagePeriodDuration = getAveragePeriodDurationOffset(cyclePeriods)
+  const checkInPastPeriod = (date) => isInPastPeriod(date, cyclePeriods)
+  const checkInFuturePeriod = (date) => isInFuturePeriod(
+    date,
+    data.cycle.expectedNextStart,
+    data.cycle.cycleLength,
+    averagePeriodDuration,
+    cyclePeriods
+  )
   const getCycleDayForDate = (date) => getCycleDay(date, data.cycle)
+  const expectedNextStartDate = data.cycle.expectedNextStart
+    ? (() => {
+        const nextStart = new Date(data.cycle.expectedNextStart)
+        nextStart.setHours(0, 0, 0, 0)
+        return nextStart
+      })()
+    : null
   const plannedDateNightDates = data.reminders?.dateNights?.plannedDates || []
   
   // Check if date is a period start date
@@ -150,6 +167,7 @@ function CalendarView({ data, onUpdate }) {
 
     const checkDate = new Date(date)
     checkDate.setHours(0, 0, 0, 0)
+    if (checkDate < todayStart) return false
 
     let currentStart = new Date(expectedNextStart)
     currentStart.setHours(0, 0, 0, 0)
@@ -507,9 +525,41 @@ function CalendarView({ data, onUpdate }) {
       return
     }
     
-    // Add new period with automatic end date
-    const endDate = format(addDays(date, DEFAULT_PERIOD_DURATION_DAYS), 'yyyy-MM-dd')
-    const newPeriod = { startDate: dateStr, endDate: endDate }
+    const averageOffset = getAveragePeriodDurationOffset(periods)
+    const normalizedOffset = Number.isFinite(averageOffset) ? averageOffset : DEFAULT_PERIOD_DURATION_DAYS
+
+    const sortedByStartDesc = [...periods].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
+    const mostRecentPeriod = sortedByStartDesc[0]
+    if (mostRecentPeriod && mostRecentPeriod.startDate !== dateStr) {
+      const recentStart = new Date(mostRecentPeriod.startDate)
+      recentStart.setHours(0, 0, 0, 0)
+      const diffFromRecent = differenceInDays(newDate, recentStart)
+      const isEditableRecent = (!mostRecentPeriod.endDate || mostRecentPeriod.autoEnd)
+      if (
+        diffFromRecent > 0 &&
+        diffFromRecent <= PERIOD_START_SHIFT_TOLERANCE_DAYS &&
+        isEditableRecent
+      ) {
+        const shiftedEndDate = format(addDays(date, normalizedOffset), 'yyyy-MM-dd')
+        const newPeriods = periods.map(p => {
+          if (p.startDate !== mostRecentPeriod.startDate) {
+            return p
+          }
+          return {
+            ...p,
+            startDate: dateStr,
+            endDate: shiftedEndDate,
+            autoEnd: true
+          }
+        })
+        updateCycleData(newPeriods)
+        return
+      }
+    }
+
+    // Add new period with automatic end date based on average actual duration
+    const endDate = format(addDays(date, normalizedOffset), 'yyyy-MM-dd')
+    const newPeriod = { startDate: dateStr, endDate, autoEnd: true }
     updateCycleData([...periods, newPeriod])
     
     // Don't close menu - keep it open
@@ -519,36 +569,33 @@ function CalendarView({ data, onUpdate }) {
     const dateStr = format(date, 'yyyy-MM-dd')
     const periods = data.cycle.periods || []
     
-    // Find the most recent period that needs an end date update
-    // This includes periods without an end date OR periods with auto-generated end dates (within 5 days of start)
+    // Find the most recent period whose start is on or before the selected date
     const sortedPeriods = [...periods].sort((a, b) => 
       new Date(b.startDate) - new Date(a.startDate)
     )
     
+    const normalizedDate = new Date(date)
+    normalizedDate.setHours(0, 0, 0, 0)
+    
     const periodToUpdate = sortedPeriods.find(p => {
       const startDate = new Date(p.startDate)
-      if (new Date(p.startDate) > new Date(dateStr)) return false // End date must be after start
-      
-      if (!p.endDate) {
-        // Period without end date
-        return true
-      }
-      
-      // Check if end date is auto-generated
-      const autoEndDate = format(addDays(startDate, DEFAULT_PERIOD_DURATION_DAYS), 'yyyy-MM-dd')
-      if (p.endDate === autoEndDate) {
-        // This is an auto-generated end date, allow updating it
-        return true
-      }
-      
-      return false
+      startDate.setHours(0, 0, 0, 0)
+      return normalizedDate >= startDate
     })
     
     if (periodToUpdate) {
-      // Update existing period's end date
-      const newPeriods = periods.map(p => 
-        p.startDate === periodToUpdate.startDate ? { ...p, endDate: dateStr } : p
-      )
+      // Update existing period's end date and clear autoEnd flag if present
+      const newPeriods = periods.map(p => {
+        if (p.startDate !== periodToUpdate.startDate) {
+          return p
+        }
+        const updatedPeriod = { ...p, endDate: dateStr }
+        if (updatedPeriod.autoEnd) {
+          const { autoEnd, ...rest } = updatedPeriod
+          return rest
+        }
+        return updatedPeriod
+      })
       updateCycleData(newPeriods)
     } else {
       // No period to update, create new period with both start and end
@@ -901,6 +948,19 @@ function CalendarView({ data, onUpdate }) {
               dayStart.setHours(0, 0, 0, 0)
               const isPastDay = dayStart < todayStart
               const showPlanButton = !isPastDay || isPlannedForDay
+              const isFutureDay = dayStart >= todayStart
+              const isUpcomingCycleDay = Boolean(
+                expectedNextStartDate && isFutureDay && dayStart >= expectedNextStartDate
+              )
+              const getNormalizedFutureCycleDay = () => {
+                if (!expectedNextStartDate) return null
+                const cycleLength = data.cycle.cycleLength || 28
+                if (cycleLength <= 0) return null
+                const offset = differenceInDays(dayStart, expectedNextStartDate)
+                if (offset < 0) return null
+                const normalized = (offset % cycleLength) + 1
+                return normalized
+              }
               
               return (
                 <div
@@ -909,15 +969,22 @@ function CalendarView({ data, onUpdate }) {
                   onClick={(e) => handleDayClick(day, e)}
                 >
                   <div className="day-number">{format(day, 'd')}</div>
-                  {cycleDay !== null && (() => {
-                    // Use actual cycle length for all calculations
+                  {(() => {
                     const cycleLength = data.cycle.cycleLength || 28
-                    // Normalize cycle day to cycle length range
-                    const normalizedDay = ((cycleDay - 1) % cycleLength) + 1
-                    // Get phase using actual cycle length (proportionally maps to 28-day phases)
-                    const phase = getPhaseFromCycleDayWithLength(normalizedDay, cycleLength)
-                    // Use actual cycle day for display
-                    const displayDay = normalizedDay
+                    if (cycleLength <= 0) return null
+                    const shouldNormalizeCycleDay = inFuturePeriod || isUpcomingCycleDay
+                    let displayDay = cycleDay
+                    if (shouldNormalizeCycleDay) {
+                      const normalized = getNormalizedFutureCycleDay()
+                      if (normalized !== null) {
+                        displayDay = normalized
+                      }
+                    }
+                    if (displayDay === null || displayDay === undefined) {
+                      return null
+                    }
+                    const phaseDay = Math.min(displayDay, cycleLength)
+                    const phase = getPhaseFromCycleDayWithLength(phaseDay, cycleLength)
                     return (
                       <div className="cycle-day-info">
                         <span className="cycle-day-number">{displayDay}</span>

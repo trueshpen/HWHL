@@ -1,5 +1,5 @@
 import { differenceInDays, addDays } from 'date-fns'
-import { DEFAULT_CYCLE_LENGTH, DEFAULT_PERIOD_DURATION_DAYS } from './constants'
+import { DEFAULT_CYCLE_LENGTH, DEFAULT_PERIOD_DURATION_DAYS, MAX_PERIOD_LENGTH_DAYS } from './constants'
 
 /**
  * Calculate cycle day number for a given date
@@ -83,41 +83,99 @@ export const getCycleDay = (date, cycleData) => {
  */
 export const isInPastPeriod = (date, periods) => {
   if (!periods || periods.length === 0) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
   const checkDate = new Date(date)
   checkDate.setHours(0, 0, 0, 0)
+  const fallbackOffset = getAveragePeriodDurationOffset(periods)
   
   return periods.some(period => {
+    if (!period.startDate) return false
     const start = new Date(period.startDate)
-    const end = period.endDate ? new Date(period.endDate) : addDays(start, DEFAULT_PERIOD_DURATION_DAYS)
+    const end = period.endDate
+      ? new Date(period.endDate)
+      : addDays(start, fallbackOffset)
     start.setHours(0, 0, 0, 0)
     end.setHours(23, 59, 59, 999)
     
-    // Check if date is within the period range AND the period is in the past
-    const isInRange = checkDate >= start && checkDate <= end
-    const isPast = end < today
-    return isInRange && isPast
+    // Treat any recorded period (past or ongoing) as active
+    return checkDate >= start && checkDate <= end
   })
 }
 
 /**
  * Check if a date is within a future expected period
  */
-export const isInFuturePeriod = (date, expectedNextStart, cycleLength) => {
+export const isInFuturePeriod = (
+  date,
+  expectedNextStart,
+  cycleLength,
+  periodDurationOffset = DEFAULT_PERIOD_DURATION_DAYS,
+  periods = []
+) => {
   if (!expectedNextStart || !cycleLength) return false
 
   const normalizedCycle = Math.max(1, cycleLength)
+  const normalizedDuration = Math.max(1, periodDurationOffset)
   const checkDate = new Date(date)
   checkDate.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const earliestPlannableDate = addDays(today, -normalizedDuration)
+  if (checkDate < earliestPlannableDate) return false
 
   const baseStart = new Date(expectedNextStart)
   if (Number.isNaN(baseStart.getTime())) return false
   baseStart.setHours(0, 0, 0, 0)
 
+  const hasRecordedPeriod = Array.isArray(periods) && periods.some(period => {
+    if (!period?.startDate) return false
+    const start = new Date(period.startDate)
+    start.setHours(0, 0, 0, 0)
+    const end = period.endDate
+      ? new Date(period.endDate)
+      : addDays(start, normalizedDuration)
+    end.setHours(23, 59, 59, 999)
+    return checkDate >= start && checkDate <= end
+  })
+  if (hasRecordedPeriod) {
+    return false
+  }
+
+  const nextRecordedStart = Array.isArray(periods)
+    ? periods
+        .map(period => {
+          if (!period?.startDate) return null
+          const start = new Date(period.startDate)
+          start.setHours(0, 0, 0, 0)
+          return start
+        })
+        .filter(start => start && start > checkDate)
+        .sort((a, b) => a - b)[0]
+    : null
+
+  if (nextRecordedStart) {
+    return false
+  }
+
+  const hasPeriodStartOnDate = (targetDate) => {
+    if (!Array.isArray(periods) || periods.length === 0) return false
+    return periods.some(period => {
+      if (!period?.startDate) return false
+      const start = new Date(period.startDate)
+      start.setHours(0, 0, 0, 0)
+      return start.getTime() === targetDate.getTime()
+    })
+  }
+
+  const isWithinWindow = (startDate) => {
+    const windowStart = new Date(startDate)
+    windowStart.setHours(0, 0, 0, 0)
+    const windowEnd = addDays(new Date(windowStart), normalizedDuration)
+    windowEnd.setHours(23, 59, 59, 999)
+    return checkDate >= windowStart && checkDate <= windowEnd
+  }
+
   const diffDays = differenceInDays(checkDate, baseStart)
   let cyclesOffset = Math.floor(diffDays / normalizedCycle)
-
   let candidateStart = addDays(baseStart, cyclesOffset * normalizedCycle)
   candidateStart.setHours(0, 0, 0, 0)
 
@@ -126,22 +184,46 @@ export const isInFuturePeriod = (date, expectedNextStart, cycleLength) => {
     candidateStart.setHours(0, 0, 0, 0)
   }
 
-  const isWithinWindow = (start) => {
-    const end = addDays(new Date(start), DEFAULT_PERIOD_DURATION_DAYS)
-    end.setHours(23, 59, 59, 999)
-    return checkDate >= start && checkDate <= end
-  }
-
-  if (isWithinWindow(candidateStart)) {
+  const candidateHasRecordedStart = hasPeriodStartOnDate(candidateStart)
+  if (!candidateHasRecordedStart && isWithinWindow(candidateStart)) {
     return true
   }
 
   const nextStart = addDays(candidateStart, normalizedCycle)
   nextStart.setHours(0, 0, 0, 0)
-  if (isWithinWindow(nextStart)) {
+  if (!hasPeriodStartOnDate(nextStart) && isWithinWindow(nextStart)) {
     return true
   }
 
   return false
+}
+
+export const getAveragePeriodDurationOffset = (periods) => {
+  if (!Array.isArray(periods) || periods.length === 0) {
+    return DEFAULT_PERIOD_DURATION_DAYS
+  }
+
+  const offsets = periods
+    .map(period => {
+      if (!period.startDate || !period.endDate || period.autoEnd) {
+        return null
+      }
+      const start = new Date(period.startDate)
+      const end = new Date(period.endDate)
+      const diff = differenceInDays(end, start)
+      if (Number.isNaN(diff) || diff < 0 || diff > MAX_PERIOD_LENGTH_DAYS) {
+        return null
+      }
+      return diff
+    })
+    .filter((value) => typeof value === 'number')
+
+  if (offsets.length === 0) {
+    return DEFAULT_PERIOD_DURATION_DAYS
+  }
+
+  const average = offsets.reduce((sum, value) => sum + value, 0) / offsets.length
+  const rounded = Math.round(average)
+  return Math.max(0, Math.min(rounded, MAX_PERIOD_LENGTH_DAYS))
 }
 
