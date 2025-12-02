@@ -379,6 +379,13 @@
     "general dateNights";
 }
 
+/* Desktop: hide reminder indicator, show only event dots */
+@media (min-width: 769px) {
+  .reminder-indicator {
+    display: none !important;
+  }
+}
+
 .reminder-icon-cell {
   width: 14px;
   height: 14px;
