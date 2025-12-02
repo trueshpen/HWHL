@@ -365,71 +365,63 @@
   position: absolute;
   bottom: 4px;
   left: 4px;
-  display: none;
-  pointer-events: none;
-}
-
-.reminder-indicator.active {
   display: grid;
+  pointer-events: none;
+  gap: 1px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  grid-template-areas:
+    "flowers surprises"
+    "general dateNights";
 }
 
-/* Desktop: hide reminder indicator, show only event dots */
-@media (min-width: 769px) {
-  .reminder-indicator {
-    display: none !important;
-  }
-  
-  .reminder-indicator.active {
-    display: none !important;
-  }
+.reminder-icon-cell {
+  width: 14px;
+  height: 14px;
+  font-size: 0.65rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  background: none;
+  box-shadow: none;
 }
 
-.reminder-segment {
-  width: 8px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  opacity: 0.4;
+.reminder-icon-cell.flowers {
+  grid-area: flowers;
 }
 
-.reminder-segment.active {
-  opacity: 1;
+.reminder-icon-cell.surprises {
+  grid-area: surprises;
 }
 
-.reminder-segment.flowers {
-  border-top-left-radius: 8px;
+.reminder-icon-cell.general {
+  grid-area: general;
 }
 
-.reminder-segment.surprises {
-  border-top-right-radius: 8px;
+.reminder-icon-cell.dateNights {
+  grid-area: dateNights;
 }
 
-.reminder-segment.general {
-  border-bottom-left-radius: 8px;
+.reminder-icon-cell.flowers {
+  color: #ff6b81;
 }
 
-.reminder-segment.dateNights {
-  border-bottom-right-radius: 8px;
+.reminder-icon-cell.surprises {
+  color: #f9ca24;
 }
 
-.reminder-segment.flowers.active {
-  background: #ff6b81;
-  border-color: #ff6b81;
+.reminder-icon-cell.general {
+  color: #fd79a8;
 }
 
-.reminder-segment.surprises.active {
-  background: #f9ca24;
-  border-color: #f9ca24;
-}
-
-.reminder-segment.general.active {
-  background: #fd79a8;
-  border-color: #fd79a8;
-}
-
-.reminder-segment.dateNights.active {
-  background: #74b9ff;
-  border-color: #74b9ff;
+.reminder-icon-cell.dateNights {
+  color: #74b9ff;
 }
 
 .planned-date-heart {
@@ -509,11 +501,10 @@
     display: none;
   }
 
-  .reminder-indicator {
-    display: grid;
-    grid-template-columns: repeat(2, 8px);
-    grid-template-rows: repeat(2, 8px);
-    gap: 2px;
+  .reminder-icon-cell {
+    width: 16px;
+    height: 16px;
+    font-size: 0.75rem;
   }
 
   .planned-date-heart {
@@ -795,3 +786,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+

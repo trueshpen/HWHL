@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 :root {
   --primary: #ff6b9d;
   --primary-dark: #e55a8a;
@@ -33,6 +38,7 @@ body {
 
 #root {
   min-height: 100vh;
+  height: 100%;
 }
 
 button {

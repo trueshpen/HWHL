@@ -943,6 +943,7 @@ function CalendarView({ data, onUpdate }) {
                 acc[type] = events.some(event => event.type === type)
                 return acc
               }, {})
+              const activeReminderTypes = REMINDER_SEGMENT_TYPES.filter(type => reminderSegmentState[type])
               const isPlannedForDay = plannedDateNightDates.includes(dayStr)
               const dayStart = new Date(day)
               dayStart.setHours(0, 0, 0, 0)
@@ -1006,15 +1007,24 @@ function CalendarView({ data, onUpdate }) {
                       </div>
                     ))}
                   </div>
-                  <div className={`reminder-indicator ${Object.values(reminderSegmentState).some(Boolean) ? 'active' : ''}`}>
-                    {REMINDER_SEGMENT_TYPES.map(type => (
-                      <span
-                        key={type}
-                        className={`reminder-segment ${type} ${reminderSegmentState[type] ? 'active' : ''}`}
-                        title={reminderSegmentState[type] ? reminderTypes[type].label : ''}
-                      />
-                    ))}
-                  </div>
+                  {activeReminderTypes.length > 0 && (
+                    <div className="reminder-indicator active">
+                      {activeReminderTypes.map(type => {
+                        const label = reminderTypes[type]?.label || ''
+                        const icon = reminderTypes[type]?.emoji || ''
+                        return (
+                          <span
+                            key={type}
+                            className={`reminder-icon-cell ${type}`}
+                            title={label}
+                            aria-label={label}
+                          >
+                            {icon}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
                   {isPlannedForDay && (
                     <div className="planned-date-heart" title="Planned date night">
                       ♡
