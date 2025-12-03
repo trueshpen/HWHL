@@ -10,23 +10,10 @@ import {
   getDaysSince,
   getPreviousEventDate,
   getNextPlannedDate,
-  getSortedPlannedDates
+  getSortedPlannedDates,
+  getShowLovePrompt
 } from '../utils/reminderUtils'
 import './Reminders.css'
-
-// Motivational phrases for "Show love" when done today
-const motivationalPhrases = [
-  'You can do it again!',
-  'Keep the love flowing! 💕',
-  'Another day, another chance to show love!',
-  'Love never stops! Keep going!',
-  'Every moment is a chance to make her happy!',
-  'The more love, the better! 💖',
-  'Keep spreading the love!',
-  'Love is a daily practice!',
-  'Make her smile again today! 😊',
-  'Your love makes a difference every day!'
-]
 
 const filterPlannedDatesAfter = (plannedDates = [], cutoffDateStr) => {
   if (!cutoffDateStr) return plannedDates
@@ -51,10 +38,10 @@ function Reminders({ data, onUpdate, onExpandChange }) {
   const [editingNotes, setEditingNotes] = useState(null)
   const [newNoteText, setNewNoteText] = useState('')
   const [newNoteType, setNewNoteType] = useState('like')
-  const [currentMotivationalPhrase, setCurrentMotivationalPhrase] = useState(motivationalPhrases[0])
   const [isExpanded, setIsExpanded] = useState(false)
   const [planningType, setPlanningType] = useState(null)
   const [plannedDateInput, setPlannedDateInput] = useState('')
+  const showLovePrompt = getShowLovePrompt(data.reminders?.general)
   
   const handleExpandChange = (expanded) => {
     setIsExpanded(expanded)
@@ -87,12 +74,6 @@ function Reminders({ data, onUpdate, onExpandChange }) {
     // For other types, don't add if already exists for today
     if (type !== 'general' && existingEvents.includes(eventDate)) {
       return
-    }
-    
-    // For "Show love", pick a random motivational phrase
-    if (type === 'general') {
-      const randomPhrase = motivationalPhrases[Math.floor(Math.random() * motivationalPhrases.length)]
-      setCurrentMotivationalPhrase(randomPhrase)
     }
     
     let updatedReminder = {
@@ -415,7 +396,7 @@ function Reminders({ data, onUpdate, onExpandChange }) {
                               <div className="last-done-container">
                                 {type === 'general' ? (
                                   <div className="last-done-action">
-                                    {isToday ? currentMotivationalPhrase : ''}
+                                    {isToday ? showLovePrompt : ''}
                                   </div>
                                 ) : (
                                   <div className="last-done-action">

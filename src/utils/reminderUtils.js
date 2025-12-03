@@ -14,7 +14,69 @@ export const reminderTypes = {
   general: { emoji: '💕', label: 'Show love', defaultFrequency: 1, color: '#f8b5c0' }
 }
 
-const GENERAL_COOLDOWN_HOURS = 2
+export const SHOW_LOVE_PROMPTS = [
+  { id: 1, text: 'Tell her “I love you.”' },
+  { id: 2, text: 'Offer a small gesture, like making her tea.' },
+  { id: 3, text: 'Give her a hug or kiss.' },
+  { id: 4, text: 'Ask how she’s honestly feeling.' },
+  { id: 5, text: 'Ask how work was today.' },
+  { id: 6, text: 'Send her a sweet message just because.' },
+  { id: 7, text: 'Prepare her favorite snack or drink.' },
+  { id: 8, text: 'Wish her a nice day first thing in the morning.' },
+  { id: 9, text: 'Thank her for something she usually does automatically.' },
+  { id: 10, text: 'Give her a longer shoulder or back massage.' },
+  { id: 12, text: 'Plan a cozy movie or series night and let her choose.' },
+  { id: 14, text: 'Give a sincere compliment about something specific she did.' },
+  { id: 15, text: 'Send her a cute gif or meme during the day.' },
+  { id: 17, text: 'Ask for her advice or opinion on something.' },
+  { id: 19, text: 'Hold her coat or open the door for her.' },
+  { id: 20, text: 'Bring up a happy memory you share.' }
+]
+
+const SHOW_LOVE_MORNING_PROMPT_ID = 8
+
+const getMorningShowLovePrompt = () => {
+  return SHOW_LOVE_PROMPTS.find(prompt => prompt.id === SHOW_LOVE_MORNING_PROMPT_ID) || SHOW_LOVE_PROMPTS[0] || null
+}
+
+const getSeededIndex = (seed, length) => {
+  if (length <= 0) return 0
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % 2147483647
+  }
+  return Math.abs(hash) % length
+}
+
+export const getShowLovePrompt = (reminder, now = new Date()) => {
+  const morningPrompt = getMorningShowLovePrompt()
+  if (!morningPrompt) return ''
+
+  if (!reminder) {
+    return morningPrompt.text
+  }
+
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const todayStr = format(today, 'yyyy-MM-dd')
+  const events = Array.isArray(reminder.events) ? reminder.events : []
+  const todayCount = events.filter(eventDate => eventDate === todayStr).length
+
+  if (todayCount === 0) {
+    return morningPrompt.text
+  }
+
+  const followUpPrompts = SHOW_LOVE_PROMPTS.filter(prompt => prompt.id !== SHOW_LOVE_MORNING_PROMPT_ID)
+  if (followUpPrompts.length === 0) {
+    return morningPrompt.text
+  }
+
+  const seed = `${todayStr}-${todayCount}`
+  const index = getSeededIndex(seed, followUpPrompts.length)
+  return followUpPrompts[index].text
+}
+
+const GENERAL_COOLDOWN_HOURS = 1
 const QUIET_HOURS_START = 21 // 21:00
 const QUIET_HOURS_END = 6 // 06:00
 

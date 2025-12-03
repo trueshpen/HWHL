@@ -7,9 +7,21 @@ import {
   shouldShowTodayReminder,
   getStatus,
   getLastEventDate,
-  getNextPlannedDate
+  getNextPlannedDate,
+  getShowLovePrompt
 } from '../utils/reminderUtils'
 import './TodayReminders.css'
+
+const filterPlannedDatesAfterDate = (dates = [], cutoffStr) => {
+  if (!cutoffStr) return dates
+  const cutoff = new Date(`${cutoffStr}T00:00:00`)
+  cutoff.setHours(0, 0, 0, 0)
+  return dates.filter(dateStr => {
+    const date = new Date(`${dateStr}T00:00:00`)
+    date.setHours(0, 0, 0, 0)
+    return date > cutoff
+  })
+}
 
 function TodayReminders({ data, onUpdate, onTotalsChange }) {
   if (!data?.reminders) return null
@@ -25,13 +37,15 @@ function TodayReminders({ data, onUpdate, onTotalsChange }) {
       }
       const status = getStatus(reminder, type)
       const lastEventDate = getLastEventDate(reminder)
+      const actionPrompt = type === 'general' ? getShowLovePrompt(reminder) : null
       return {
         type,
         info,
         reminder,
         status,
         lastEventDate,
-        nextPlannedDate: getNextPlannedDate(reminder)
+        nextPlannedDate: getNextPlannedDate(reminder),
+        actionPrompt
       }
     })
     .filter(Boolean)
@@ -83,14 +97,29 @@ function TodayReminders({ data, onUpdate, onTotalsChange }) {
 
     const newEvents = [...existingEvents, eventDate].sort().reverse()
 
+    let updatedReminder = {
+      ...reminder,
+      lastDone: now.toISOString(),
+      events: newEvents
+    }
+
+    if (type === 'dateNights') {
+      const plannedDates = Array.isArray(reminder.plannedDates) ? reminder.plannedDates : []
+      if (plannedDates.length > 0) {
+        const filteredPlannedDates = filterPlannedDatesAfterDate(plannedDates, eventDate)
+        if (filteredPlannedDates.length !== plannedDates.length) {
+          updatedReminder = {
+            ...updatedReminder,
+            plannedDates: filteredPlannedDates
+          }
+        }
+      }
+    }
+
     const newData = updateData({
       reminders: {
         ...data.reminders,
-        [type]: {
-          ...reminder,
-          lastDone: now.toISOString(),
-          events: newEvents
-        }
+        [type]: updatedReminder
       }
     })
     onUpdate(newData)
@@ -116,7 +145,7 @@ function TodayReminders({ data, onUpdate, onTotalsChange }) {
             <>
               <div className="today-section-title">Reminders</div>
               <div className="today-list">
-                {pendingReminders.map(({ type, info, reminder, status, lastEventDate, nextPlannedDate }) => (
+                {pendingReminders.map(({ type, info, reminder, status, lastEventDate, nextPlannedDate, actionPrompt }) => (
                   <div key={type} className="today-item">
                     <div className="today-info">
                       <span className="today-emoji">{info.emoji}</span>
@@ -131,6 +160,9 @@ function TodayReminders({ data, onUpdate, onTotalsChange }) {
                           <span className="today-subtext">
                             Planned for {format(new Date(nextPlannedDate + 'T00:00:00'), 'd MMM')}
                           </span>
+                        )}
+                        {type === 'general' && actionPrompt && (
+                          <span className="today-subtext">{actionPrompt}</span>
                         )}
                       </div>
                     </div>
