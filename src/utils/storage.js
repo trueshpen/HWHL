@@ -3,6 +3,12 @@ import { DEFAULT_CYCLE_LENGTH, MAX_CYCLE_LENGTH_DAYS } from './constants'
 const STORAGE_KEY = 'wife-happiness-app-data'
 const API_BASE_URL = 'https://localhost:3000/api'
 
+const defaultSecurity = {
+  password: '190789',
+  secretQuestion: '',
+  secretAnswer: ''
+}
+
 const defaultData = {
   cycle: {
     periods: [], // Array of { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
@@ -34,6 +40,7 @@ const defaultData = {
       { id: 'general-3', type: 'love', text: 'Support her, take care of her' }
     ] },
   },
+  security: { ...defaultSecurity },
 }
 
 // Calculate average cycle length from periods
@@ -197,6 +204,16 @@ const applyMigrations = (data) => {
   // Migrate reminder data if needed
   if (data.reminders) {
     merged.reminders = migrateReminderData(data.reminders)
+  }
+
+  // Ensure security block exists
+  if (data.security) {
+    merged.security = {
+      ...defaultSecurity,
+      ...data.security
+    }
+  } else if (!merged.security) {
+    merged.security = { ...defaultSecurity }
   }
   
   return merged

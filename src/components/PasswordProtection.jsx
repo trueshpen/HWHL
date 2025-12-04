@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './PasswordProtection.css'
 
-const CORRECT_PASSWORD = '190789'
 const CODE_LENGTH = 6
+const PASSCODE_REGEX = /^\d{6}$/
 const KEYPAD_LAYOUT = [
   ['1', '2', '3'],
   ['4', '5', '6'],
@@ -10,11 +10,21 @@ const KEYPAD_LAYOUT = [
   ['fingerprint', '0', 'backspace']
 ]
 
-function PasswordProtection({ onAuthenticated }) {
+function PasswordProtection({ security, onAuthenticated, onSecurityUpdate }) {
+  const storedPassword = security?.password || null
+  const hasSecretQuestion = Boolean(
+    security?.secretQuestion?.trim() && security?.secretAnswer?.trim()
+  )
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [isShaking, setIsShaking] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
+  const [isResetVisible, setIsResetVisible] = useState(false)
+  const [resetAnswer, setResetAnswer] = useState('')
+  const [resetNewCode, setResetNewCode] = useState('')
+  const [resetConfirmCode, setResetConfirmCode] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
+  const [resetError, setResetError] = useState('')
   const inputRefs = useRef([])
 
   // Check if already authenticated in this session
@@ -43,29 +53,37 @@ function PasswordProtection({ onAuthenticated }) {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Auto-verify when all 6 digits are entered
+  // Auto-verify when all digits are entered
   useEffect(() => {
+    if (!storedPassword) return
     const fullCode = code.join('')
     if (fullCode.length === CODE_LENGTH) {
-      if (fullCode === CORRECT_PASSWORD) {
+      if (fullCode === storedPassword) {
         sessionStorage.setItem('app_authenticated', 'true')
         sessionStorage.removeItem('auto_logout_deadline')
         setIsAuthenticated(true)
         onAuthenticated()
       } else {
-        // Shake animation
         setIsShaking(true)
         setTimeout(() => {
           setIsShaking(false)
-          setCode(['', '', '', '', '', ''])
-          // Focus first input after shake
+          setCode(Array(CODE_LENGTH).fill(''))
           if (inputRefs.current[0]) {
             inputRefs.current[0].focus()
           }
         }, 500)
       }
     }
-  }, [code, onAuthenticated])
+  }, [code, onAuthenticated, storedPassword])
+
+  // Auto authenticate if no passcode is set
+  useEffect(() => {
+    if (storedPassword || isAuthenticated) return
+    sessionStorage.setItem('app_authenticated', 'true')
+    sessionStorage.removeItem('auto_logout_deadline')
+    setIsAuthenticated(true)
+    onAuthenticated()
+  }, [storedPassword, isAuthenticated, onAuthenticated])
 
   const handleChange = (index, value) => {
     // Only allow numbers
@@ -138,6 +156,49 @@ function PasswordProtection({ onAuthenticated }) {
     fillNextDigit(value)
   }
 
+  const handleResetToggle = () => {
+    setIsResetVisible(!isResetVisible)
+    setResetAnswer('')
+    setResetNewCode('')
+    setResetConfirmCode('')
+    setResetError('')
+    setResetMessage('')
+  }
+
+  const handleResetSubmit = (event) => {
+    event.preventDefault()
+    if (!hasSecretQuestion) {
+      setResetError('No secret question found. Log in and set one in settings.')
+      return
+    }
+    const storedAnswer = (security?.secretAnswer || '').trim().toLowerCase()
+    if (!resetAnswer.trim()) {
+      setResetError('Answer is required.')
+      return
+    }
+    if (storedAnswer !== resetAnswer.trim().toLowerCase()) {
+      setResetError('Answer does not match.')
+      return
+    }
+    if (!PASSCODE_REGEX.test(resetNewCode)) {
+      setResetError('Passcode must be exactly 6 digits.')
+      return
+    }
+    if (resetNewCode !== resetConfirmCode) {
+      setResetError('Confirmation does not match.')
+      return
+    }
+    if (onSecurityUpdate) {
+      onSecurityUpdate({ password: resetNewCode })
+    }
+    setResetMessage('Passcode reset. Signing you in…')
+    setResetError('')
+    sessionStorage.setItem('app_authenticated', 'true')
+    sessionStorage.removeItem('auto_logout_deadline')
+    setIsAuthenticated(true)
+    onAuthenticated()
+  }
+
   if (isAuthenticated) {
     return null
   }
@@ -147,55 +208,145 @@ function PasswordProtection({ onAuthenticated }) {
       <div className={`password-form-container ${isShaking ? 'shake' : ''} ${isMobileView ? 'mobile' : ''}`}>
         <div className="password-form-header">
           <h2>🔒 Protected Access</h2>
-          <p>Enter 6-digit code</p>
+          {storedPassword ? (
+            isResetVisible ? (
+              <p>Answer your secret question to set a new code.</p>
+            ) : (
+              <p>Enter the 6-digit code</p>
+            )
+          ) : (
+            <p>Passcode disabled. Open settings to re-enable.</p>
+          )}
         </div>
-        {isMobileView ? (
-          <>
-            <div className="passcode-dots">
-              {code.map((digit, index) => (
-                <span
-                  key={index}
-                  className={`passcode-dot ${digit ? 'filled' : ''}`}
-                ></span>
-              ))}
-            </div>
-            <div className="passcode-keypad">
-              {KEYPAD_LAYOUT.map((row, rowIndex) => (
-                <div key={rowIndex} className="keypad-row">
-                  {row.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`keypad-btn ${value === 'fingerprint' || value === 'backspace' ? 'secondary' : ''}`}
-                      onClick={() => handleKeypadPress(value)}
-                    >
-                      {value === 'fingerprint' ? '🌀' : value === 'backspace' ? '⌫' : value}
+        {storedPassword && isResetVisible ? (
+          <div className="password-reset-wrapper">
+            <button type="button" className="reset-back-btn" onClick={handleResetToggle}>
+              ← Back to passcode
+            </button>
+            <div className="password-reset-card">
+              <h3>Reset passcode</h3>
+              {hasSecretQuestion ? (
+                <form className="reset-form" onSubmit={handleResetSubmit}>
+                  <p className="reset-question">{security?.secretQuestion}</p>
+                  <label>
+                    Answer
+                    <input
+                      type="text"
+                      value={resetAnswer}
+                      onChange={(e) => setResetAnswer(e.target.value)}
+                      placeholder="Type your answer"
+                    />
+                  </label>
+                  <label>
+                    New passcode
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="\d*"
+                      maxLength={CODE_LENGTH}
+                      value={resetNewCode}
+                      onChange={(e) => setResetNewCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Enter 6 digits"
+                    />
+                  </label>
+                  <label>
+                    Confirm passcode
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="\d*"
+                      maxLength={CODE_LENGTH}
+                      value={resetConfirmCode}
+                      onChange={(e) => setResetConfirmCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Re-enter 6 digits"
+                    />
+                  </label>
+                  {(resetError || resetMessage) && (
+                    <div className={`reset-feedback ${resetError ? 'error' : 'success'}`}>
+                      {resetError || resetMessage}
+                    </div>
+                  )}
+                  <div className="reset-actions">
+                    <button type="submit" className="primary">
+                      Reset passcode
                     </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <p className="reset-info">
+                    No secret question saved. Log in with the current passcode and add one in the security
+                    settings panel.
+                  </p>
+                  <div className="reset-actions">
+                    <button type="button" className="link" onClick={handleResetToggle}>
+                      Close
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            {isMobileView ? (
+              <>
+                <div className="passcode-dots">
+                  {code.map((digit, index) => (
+                    <span
+                      key={index}
+                      className={`passcode-dot ${digit ? 'filled' : ''}`}
+                    ></span>
                   ))}
                 </div>
-              ))}
-            </div>
-            <button type="button" className="passcode-help">
-              Forgot your passcode?
-            </button>
+                <div className="passcode-keypad">
+                  {KEYPAD_LAYOUT.map((row, rowIndex) => (
+                    <div key={rowIndex} className="keypad-row">
+                      {row.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`keypad-btn ${value === 'fingerprint' || value === 'backspace' ? 'secondary' : ''}`}
+                          onClick={() => handleKeypadPress(value)}
+                          disabled={!storedPassword}
+                        >
+                          {value === 'fingerprint' ? '🌀' : value === 'backspace' ? '⌫' : value}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {storedPassword && (
+                  <button type="button" className="passcode-help" onClick={handleResetToggle}>
+                    Forgot your passcode?
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="password-code-inputs">
+                {code.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength="1"
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    className="password-code-input"
+                    autoFocus={index === 0}
+                    disabled={!storedPassword}
+                  />
+                ))}
+              </div>
+            )}
+            {!isMobileView && storedPassword && (
+              <button type="button" className="passcode-help desktop" onClick={handleResetToggle}>
+                Forgot your passcode?
+              </button>
+            )}
           </>
-        ) : (
-          <div className="password-code-inputs">
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                inputMode="numeric"
-                maxLength="1"
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="password-code-input"
-                autoFocus={index === 0}
-              />
-            ))}
-          </div>
         )}
       </div>
     </div>

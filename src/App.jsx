@@ -3,6 +3,7 @@ import CalendarView from './components/CalendarView'
 import NotesView from './components/NotesView'
 import PersonalizationView from './components/PersonalizationView'
 import PasswordProtection from './components/PasswordProtection'
+import SecuritySettings from './components/SecuritySettings'
 import { loadDataSync, loadData, saveData } from './utils/storage'
 import { scheduleDailyNotifications, showTestNotification } from './utils/notifications'
 import './App.css'
@@ -16,6 +17,7 @@ function App() {
   const [notificationStatus, setNotificationStatus] = useState(null)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false)
   const fileInputRef = useRef(null)
   const settingsMenuRef = useRef(null)
   const autoLogoutTimerRef = useRef(null)
@@ -64,6 +66,21 @@ function App() {
     }
   }, [showSettingsMenu])
 
+  const handleSecurityUpdate = useCallback((updates) => {
+    setData(prevData => {
+      const nextSecurity = {
+        ...(prevData.security || {}),
+        ...updates
+      }
+      const newData = {
+        ...prevData,
+        security: nextSecurity
+      }
+      saveData(newData)
+      return newData
+    })
+  }, [])
+
   const handleTestNotification = async () => {
     const ok = await showTestNotification()
     if (ok) {
@@ -80,6 +97,7 @@ function App() {
     setIsAuthenticated(false)
     setAuthKey(prev => prev + 1) // Force PasswordProtection to remount
     setShowSettingsMenu(false)
+    setShowSecuritySettings(false)
   }, [clearAutoLogoutTimer])
 
   useEffect(() => {
@@ -226,6 +244,8 @@ function App() {
     <>
       <PasswordProtection 
         key={authKey}
+        security={data.security}
+        onSecurityUpdate={handleSecurityUpdate}
         onAuthenticated={() => setIsAuthenticated(true)} 
       />
       {isAuthenticated && (
@@ -261,7 +281,13 @@ function App() {
               
               {showSettingsMenu && (
                 <div className="settings-dropdown">
-                   <button onClick={handleExportData}>
+                  <button onClick={() => {
+                    setShowSecuritySettings(true)
+                    setShowSettingsMenu(false)
+                  }}>
+                    🔐 Security settings
+                  </button>
+                  <button onClick={handleExportData}>
                     📥 Export data
                   </button>
                   <button onClick={handleImportClick}>
@@ -331,6 +357,13 @@ function App() {
             </button>
           </nav>
         </div>
+      )}
+      {isAuthenticated && showSecuritySettings && (
+        <SecuritySettings
+          security={data.security}
+          onUpdate={handleSecurityUpdate}
+          onClose={() => setShowSecuritySettings(false)}
+        />
       )}
     </>
   )
