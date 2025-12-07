@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, isSameDay } from 'date-fns'
 import { updateData, saveData } from '../utils/storage'
 import TagList from './TagList'
@@ -42,6 +42,7 @@ function Reminders({ data, onUpdate, onExpandChange }) {
   const [planningType, setPlanningType] = useState(null)
   const [plannedDateInput, setPlannedDateInput] = useState('')
   const showLovePrompt = getShowLovePrompt(data.reminders?.general)
+  const dateNightReminder = data.reminders?.dateNights
   
   const handleExpandChange = (expanded) => {
     setIsExpanded(expanded)
@@ -255,6 +256,30 @@ function Reminders({ data, onUpdate, onExpandChange }) {
     onUpdate(newData)
     return newData
   }
+
+  useEffect(() => {
+    if (!dateNightReminder) return
+    const plannedDates = Array.isArray(dateNightReminder.plannedDates) ? dateNightReminder.plannedDates : []
+    if (plannedDates.length === 0) return
+    const lastEventDate = getLastEventDate(dateNightReminder)
+    if (!lastEventDate) return
+    const cutoffDate = lastEventDate.includes('T') ? lastEventDate.split('T')[0] : lastEventDate
+    const cleanedDates = filterPlannedDatesAfter(plannedDates, cutoffDate)
+    if (cleanedDates.length === plannedDates.length) return
+    const updatedReminder = {
+      ...dateNightReminder,
+      plannedDates: cleanedDates
+    }
+    const newData = {
+      ...data,
+      reminders: {
+        ...data.reminders,
+        dateNights: updatedReminder
+      }
+    }
+    saveData(newData)
+    onUpdate(newData)
+  }, [dateNightReminder, data, onUpdate])
 
   const handlePlanDateNight = (type) => {
     if (type !== 'dateNights' || !plannedDateInput) return
