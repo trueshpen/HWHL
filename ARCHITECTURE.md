@@ -64,6 +64,7 @@ HWHL/
 ```
 App
 ├── PasswordProtection
+│   └── SecuritySettings (modal)
 ├── CalendarView
 │   ├── CycleTracker
 │   ├── ImportantDates
@@ -88,7 +89,8 @@ App
   - View switching between Calendar, Personalization, and Notes
   - Desktop navigation (Calendar, Notes)
   - Mobile bottom navigation (Calendar, Personalization, Notes)
-  - Settings dropdown menu with export/import, notifications, and logout
+  - Settings dropdown menu with export/import, notifications, security settings, and logout
+  - Security settings modal (SecuritySettings component)
   - Data synchronization with server
   - Daily notification scheduling
   - Test notification functionality
@@ -106,15 +108,71 @@ App
   - `handleImportClick()` - Trigger file input for import
 
 #### PasswordProtection.jsx
-- **Purpose**: Password protection screen for app access
-- **Props**: `onAuthenticated` (callback when password is correct)
+- **Purpose**: 6-digit passcode protection screen for app access
+- **Props**: 
+  - `security` - Security settings object with password and secret question
+  - `onAuthenticated` - Callback when passcode is correct
+  - `onSecurityUpdate` - Callback to update security settings
+- **State**: 
+  - `code` - Array of 6 digits for passcode input
+  - `isShaking` - Shake animation state for wrong passcode
+  - `isAuthenticated` - Authentication status
+  - `isMobileView` - Mobile view detection
+  - `isResetVisible` - Reset passcode form visibility
+  - `resetAnswer`, `resetNewCode`, `resetConfirmCode` - Reset form fields
+  - `resetMessage`, `resetError` - Reset form feedback
 - **Features**:
-  - Password input form
+  - 6-digit passcode input with auto-verification
+  - Numeric keypad interface (desktop and mobile)
+  - Auto-focus next input on digit entry
+  - Paste support (Ctrl/Cmd+V)
+  - Shake animation on wrong passcode
+  - "Forgot passcode?" flow with secret question
+  - Reset passcode via secret question
+  - Auto-authenticate if no passcode is set
   - Session-based authentication (stored in sessionStorage)
-  - Prevents access to app until correct password is entered
-  - Returns null when authenticated (hides itself)
+  - Auto-logout deadline support
+  - Link to SecuritySettings component
 - **Key Functions**:
-  - `handleSubmit()` - Validate password and authenticate
+  - `handleChange()` - Handle digit input with auto-focus
+  - `handleKeyDown()` - Handle keyboard input (backspace, paste)
+  - `fillNextDigit()` - Fill next empty digit from keypad
+  - `removeLastDigit()` - Remove last entered digit
+  - `handleKeypadPress()` - Handle keypad button press
+  - `handleResetSubmit()` - Submit reset passcode form
+  - `handleResetCancel()` - Cancel reset passcode form
+- **Constants**:
+  - `CODE_LENGTH` - Passcode length (6 digits)
+  - `PASSCODE_REGEX` - Regex for 6-digit validation
+  - `KEYPAD_LAYOUT` - Keypad button layout
+
+#### SecuritySettings.jsx
+- **Purpose**: Modal component for managing security settings (passcode and secret question)
+- **Props**: 
+  - `security` - Security settings object
+  - `onUpdate` - Callback to update security settings
+  - `onClose` - Callback to close the modal
+- **State**: 
+  - `newPasscode`, `confirmPasscode` - Passcode input fields
+  - `question`, `answer` - Secret question and answer
+  - `statusMessage`, `errorMessage` - Feedback messages
+- **Features**:
+  - Set/change 6-digit passcode
+  - Remove passcode (disable protection)
+  - Set secret question and answer for reset flow
+  - Passcode validation (exactly 6 digits)
+  - Passcode confirmation matching
+  - Status and error message display
+  - Modal overlay with close button
+- **Key Functions**:
+  - `handleSavePasscode()` - Save new passcode
+  - `handleRemovePasscode()` - Remove passcode (disable protection)
+  - `handleSaveSecret()` - Save secret question and answer
+  - `showStatus()` - Display success message
+  - `showError()` - Display error message
+- **Constants**:
+  - `PASSCODE_LENGTH` - Passcode length (6 digits)
+  - `PASSCODE_REGEX` - Regex for passcode validation
 
 #### CalendarView.jsx
 - **Purpose**: Main calendar interface with event management
@@ -323,9 +381,10 @@ App
 #### cycleUtils.js
 - **Purpose**: Cycle-related calculations
 - **Key Functions**:
-  - `getCycleDay()` - Calculate cycle day number for a date
-  - `isInPastPeriod()` - Check if date is in a past period
-  - `isInFuturePeriod()` - Check if date is in expected future period
+  - `getCycleDay()` - Calculate cycle day number for a date (works for past periods and future expected periods)
+  - `isInPastPeriod()` - Check if date is within a past period
+  - `isInFuturePeriod()` - Check if date is within an expected future period
+  - `getAveragePeriodDurationOffset()` - Calculate average period duration from historical periods (returns DEFAULT_PERIOD_DURATION_DAYS if no periods)
 
 #### notifications.js
 - **Purpose**: Browser notification system with service worker support
@@ -351,7 +410,11 @@ App
 - **Purpose**: Reminder-related utility functions and constants
 - **Exports**:
   - `reminderTypes` - Reminder type definitions with emoji, label, default frequency, and color
+  - `SHOW_LOVE_PROMPTS` - Array of prompts for "Show love" reminders
+  - `getShowLovePrompt()` - Get a prompt for "Show love" reminder (seeded by date, morning-specific)
   - `getReminderEvents()` - Get events array from reminder
+  - `getSortedPlannedDates()` - Get sorted array of planned dates from reminder
+  - `getNextPlannedDate()` - Get next upcoming planned date (or last if none upcoming)
   - `getLastEventDate()` - Get most recent event date from reminder
   - `getDaysSince()` - Calculate days since last reminder completion
   - `getDaysUntilNext()` - Calculate days until next reminder is due
@@ -365,6 +428,8 @@ App
   - Supports planned dates for date nights
   - Handles different reminder types (flowers, surprises, dateNights, general)
   - Status calculation with planned date support
+  - Seeded prompt selection for "Show love" reminders (consistent per day)
+  - Morning-specific prompts for "Show love" reminders
 
 #### constants.js
 - **Purpose**: Application constants and phase definitions
@@ -377,6 +442,7 @@ App
     - `pre-period` (Wind Down): Days 21-28+
   - `DEFAULT_CYCLE_LENGTH` - Default cycle length (28 days)
   - `DEFAULT_PERIOD_DURATION_DAYS` - Default period duration (4 days, 5 days total including start and end)
+  - `MAX_PERIOD_LENGTH_DAYS` - Maximum difference (in days) between period start and end (12 days)
   - `PERIOD_NOTIFICATION_DAYS_BEFORE` - Notification timing (9 days)
   - `MAX_CYCLE_LENGTH_DAYS` - Maximum valid cycle length for validation (50 days)
   - `getPhaseFromCycleDayWithLength()` - Phase calculation function with custom cycle length
